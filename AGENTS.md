@@ -2,7 +2,7 @@
 
 ## Project Mission
 
-Build an interactive website for physics students based on **Problem 3: Coordinate systems and kinematic relations** from the uploaded PHYS306 homework. The goal is to help students understand how the same physical projectile motion situation is written differently when the coordinate system is moved, rotated, flipped, or relabeled.
+Build an interactive website for physics students based on **Problem 3: Coordinate systems and kinematic relations** from the homework.pdf file. The goal is to help students understand how the same physical projectile motion situation is written differently when the coordinate system is moved, rotated, flipped, or relabeled.
 
 The website must emphasize this central idea:
 

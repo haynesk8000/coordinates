@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { FlipHorizontal, FlipVertical, RotateCcw, Shuffle, Tag } from 'lucide-react';
 import type { CoordinateSystem } from '../physics/coordinateSystem';
-import { flipAxis, setLabels, swapCoordinateVariables } from '../physics/coordinateSystem';
+import {
+  flipAxis,
+  MAX_ROTATION_UNITS,
+  MIN_ROTATION_UNITS,
+  ROTATION_UNIT_RADIANS,
+  setLabels,
+  swapCoordinateVariables,
+} from '../physics/coordinateSystem';
 import type { CoordinatePreset } from '../physics/presets';
 import type { ProjectileParameters } from '../physics/projectile';
 import { perpendicularLeft, scale, vector } from '../physics/vectors';
@@ -27,8 +34,7 @@ const labelSets = {
   rs: ['r', 's'],
 };
 
-const rotationUnit = Math.PI / 12;
-const angleUnitOf = (system: CoordinateSystem) => Math.round(Math.atan2(system.axis1.y, system.axis1.x) / rotationUnit);
+const angleUnitOf = (system: CoordinateSystem) => Math.round(Math.atan2(system.axis1.y, system.axis1.x) / ROTATION_UNIT_RADIANS);
 
 const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b));
 
@@ -49,7 +55,7 @@ const formatPiMultiple = (units: number): string => {
 };
 
 function rotateTo(system: CoordinateSystem, units: number): CoordinateSystem {
-  const radians = units * rotationUnit;
+  const radians = units * ROTATION_UNIT_RADIANS;
   const axis1 = vector(Math.cos(radians), Math.sin(radians));
   const cross = system.axis1.x * system.axis2.y - system.axis1.y * system.axis2.x;
   const axis2 = cross >= 0 ? perpendicularLeft(axis1) : scale(perpendicularLeft(axis1), -1);
@@ -66,8 +72,6 @@ export function ExploreMode({
   time,
   onTimeChange,
 }: Props) {
-  const [custom1, setCustom1] = useState(system.label1);
-  const [custom2, setCustom2] = useState(system.label2);
   const [angleUnits, setAngleUnits] = useState(() => angleUnitOf(system));
   const selectedPreset = presets.find((preset) => preset.id === selectedPresetId) ?? presets[0];
   const applySystemChange = (nextSystem: CoordinateSystem) => {
@@ -76,14 +80,23 @@ export function ExploreMode({
   };
 
   const setRotation = (nextAngleUnits: number) => {
-    setAngleUnits(nextAngleUnits);
-    onSystemChange(rotateTo(system, nextAngleUnits));
+    const clampedAngleUnits = Math.min(MAX_ROTATION_UNITS, Math.max(MIN_ROTATION_UNITS, nextAngleUnits));
+    setAngleUnits(clampedAngleUnits);
+    onSystemChange(rotateTo(system, clampedAngleUnits));
   };
 
   return (
     <div className="mode-layout explore-layout">
       <div className="primary-column">
-        <SceneCanvas params={params} system={system} time={time} onSystemChange={onSystemChange} interactive />
+        <SceneCanvas
+          params={params}
+          system={system}
+          time={time}
+          onSystemChange={onSystemChange}
+          onRotationUnitsChange={setRotation}
+          rotationUnits={angleUnits}
+          interactive
+        />
         <TimeSlider params={params} time={time} onChange={onTimeChange} />
         <div className="panel" aria-labelledby="coordinate-controls">
           <div className="panel-title">
@@ -115,8 +128,8 @@ export function ExploreMode({
               <input
                 aria-label="Rotate coordinate axes"
                 type="range"
-                min="-24"
-                max="24"
+                min={MIN_ROTATION_UNITS}
+                max={MAX_ROTATION_UNITS}
                 step="1"
                 value={angleUnits}
                 onChange={(event) => setRotation(Number(event.target.value))}
@@ -142,35 +155,12 @@ export function ExploreMode({
             </button>
           </div>
           <div className="label-controls" aria-label="Axis label controls">
+            <span className="control-group-label">Axes Labels</span>
             {Object.entries(labelSets).map(([key, labels]) => (
               <button key={key} type="button" onClick={() => onSystemChange(setLabels(system, labels[0], labels[1]))}>
                 {labels[0]}, {labels[1]}
               </button>
             ))}
-            <label>
-              Axis 1
-              <input
-                aria-label="Custom label for axis 1"
-                value={custom1}
-                maxLength={3}
-                onChange={(event) => {
-                  setCustom1(event.target.value);
-                  onSystemChange(setLabels(system, event.target.value || 'q1', system.label2));
-                }}
-              />
-            </label>
-            <label>
-              Axis 2
-              <input
-                aria-label="Custom label for axis 2"
-                value={custom2}
-                maxLength={3}
-                onChange={(event) => {
-                  setCustom2(event.target.value);
-                  onSystemChange(setLabels(system, system.label1, event.target.value || 'q2'));
-                }}
-              />
-            </label>
           </div>
         </div>
       </div>

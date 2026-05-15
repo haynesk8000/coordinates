@@ -290,6 +290,20 @@ h3 {
   stroke-dasharray: 7 4;
 }
 
+.axis-hit-zone {
+  cursor: grab;
+  pointer-events: stroke;
+  stroke: transparent;
+  stroke-width: 24;
+}
+
+.axis-rotation-handle {
+  cursor: grab;
+  fill: #ffffff;
+  stroke: #222222;
+  stroke-width: 2;
+}
+
 .projectile-dot {
   fill: #e6e6e6;
   stroke: #444444;
@@ -470,8 +484,10 @@ input[type="range"] {
   margin-top: 0.8rem;
 }
 
-.label-controls label {
-  width: 110px;
+.control-group-label {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-weight: 750;
 }
 
 .reason-panel {

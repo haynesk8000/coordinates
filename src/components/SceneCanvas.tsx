@@ -1,5 +1,10 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import type { CoordinateSystem } from '../physics/coordinateSystem';
+import {
+  MAX_ROTATION_UNITS,
+  MIN_ROTATION_UNITS,
+  ROTATION_UNIT_RADIANS,
+  type CoordinateSystem,
+} from '../physics/coordinateSystem';
 import {
   accelerationWorld,
   initialVelocityWorld,
@@ -8,13 +13,15 @@ import {
   worldPositionAtTime,
   type ProjectileParameters,
 } from '../physics/projectile';
-import { add, scale, type Vector2, vector } from '../physics/vectors';
+import { add, magnitude, scale, subtract, type Vector2, vector } from '../physics/vectors';
 
 type Props = {
   params: ProjectileParameters;
   system: CoordinateSystem;
   time: number;
   onSystemChange?: (system: CoordinateSystem) => void;
+  onRotationUnitsChange?: (units: number) => void;
+  rotationUnits?: number;
   interactive?: boolean;
   small?: boolean;
 };
@@ -30,8 +37,12 @@ type Bounds = {
 
 const screenWidth = 860;
 const screenHeight = 470;
+const axis2QuarterTurnUnits = 6;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const clampRotationUnits = (units: number) => Math.min(MAX_ROTATION_UNITS, Math.max(MIN_ROTATION_UNITS, units));
+
+type DragTarget = 'origin' | 'axis1' | 'axis2' | null;
 
 const makeBounds = (params: ProjectileParameters, system: CoordinateSystem): Bounds => {
   const minX = Math.min(-12, system.originWorld.x - 8);
@@ -43,9 +54,18 @@ const makeBounds = (params: ProjectileParameters, system: CoordinateSystem): Bou
 
 const format = (value: number) => value.toFixed(1).replace(/\.0$/, '');
 
-export function SceneCanvas({ params, system, time, onSystemChange, interactive = false, small = false }: Props) {
+export function SceneCanvas({
+  params,
+  system,
+  time,
+  onSystemChange,
+  onRotationUnitsChange,
+  rotationUnits,
+  interactive = false,
+  small = false,
+}: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [dragging, setDragging] = useState(false);
+  const [dragging, setDragging] = useState<DragTarget>(null);
   const bounds = useMemo(() => makeBounds(params, system), [params, system]);
   const projectile = worldPositionAtTime(params, time);
   const path = trajectorySamples(params);
@@ -80,9 +100,40 @@ export function SceneCanvas({ params, system, time, onSystemChange, interactive 
     });
   };
 
+  const nearestRotationEquivalent = (rawUnits: number) => {
+    const referenceUnits = rotationUnits ?? Math.round(Math.atan2(system.axis1.y, system.axis1.x) / ROTATION_UNIT_RADIANS);
+    const candidates = [-48, -24, 0, 24, 48]
+      .map((offset) => rawUnits + offset)
+      .filter((units) => units >= MIN_ROTATION_UNITS && units <= MAX_ROTATION_UNITS);
+    const nearest = candidates.reduce(
+      (best, units) => (Math.abs(units - referenceUnits) < Math.abs(best - referenceUnits) ? units : best),
+      candidates[0] ?? rawUnits,
+    );
+    return clampRotationUnits(nearest);
+  };
+
+  const updateRotationFromPointer = (target: 'axis1' | 'axis2', pointerWorld: Vector2) => {
+    const fromOrigin = subtract(pointerWorld, system.originWorld);
+    if (magnitude(fromOrigin) < 0.35) return;
+
+    const draggedAxisUnits = Math.round(Math.atan2(fromOrigin.y, fromOrigin.x) / ROTATION_UNIT_RADIANS);
+    const cross = system.axis1.x * system.axis2.y - system.axis1.y * system.axis2.x;
+    const axis1Units =
+      target === 'axis1'
+        ? draggedAxisUnits
+        : draggedAxisUnits + (cross >= 0 ? -axis2QuarterTurnUnits : axis2QuarterTurnUnits);
+
+    onRotationUnitsChange?.(nearestRotationEquivalent(axis1Units));
+  };
+
   const handlePointerMove = (event: PointerEvent<SVGSVGElement>) => {
     if (!dragging || !interactive) return;
-    updateOrigin(toWorld(event.clientX, event.clientY));
+    const pointerWorld = toWorld(event.clientX, event.clientY);
+    if (dragging === 'origin') {
+      updateOrigin(pointerWorld);
+    } else {
+      updateRotationFromPointer(dragging, pointerWorld);
+    }
   };
 
   const handleKeyDown = (event: KeyboardEvent<SVGGElement>) => {
@@ -114,6 +165,17 @@ export function SceneCanvas({ params, system, time, onSystemChange, interactive 
     return { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
   };
 
+  const startDrag = (target: DragTarget, event: PointerEvent<SVGElement>) => {
+    if (!interactive) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+    event.stopPropagation();
+    setDragging(target);
+    if (target === 'axis1' || target === 'axis2') {
+      updateRotationFromPointer(target, toWorld(event.clientX, event.clientY));
+    }
+  };
+
   const axis1End = add(system.originWorld, scale(system.axis1, axisLength));
   const axis2End = add(system.originWorld, scale(system.axis2, axisLength));
   const velocityEnd = add(projectile, scale(velocity, 0.42));
@@ -139,8 +201,8 @@ export function SceneCanvas({ params, system, time, onSystemChange, interactive 
         role={interactive ? 'application' : 'img'}
         aria-label="Projectile scene with cliff, wall, trajectory, and coordinate axes"
         onPointerMove={handlePointerMove}
-        onPointerUp={() => setDragging(false)}
-        onPointerCancel={() => setDragging(false)}
+        onPointerUp={() => setDragging(null)}
+        onPointerCancel={() => setDragging(null)}
       >
         <defs>
           <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
@@ -200,6 +262,38 @@ export function SceneCanvas({ params, system, time, onSystemChange, interactive 
 
         <line {...line(system.originWorld, axis1End)} className="axis axis-one" markerEnd="url(#arrow-blue)" />
         <line {...line(system.originWorld, axis2End)} className="axis axis-two" markerEnd="url(#arrow-blue)" />
+        {interactive ? (
+          <>
+            <line
+              {...line(system.originWorld, axis1End)}
+              className="axis-hit-zone"
+              aria-hidden="true"
+              onPointerDown={(event) => startDrag('axis1', event)}
+            />
+            <line
+              {...line(system.originWorld, axis2End)}
+              className="axis-hit-zone"
+              aria-hidden="true"
+              onPointerDown={(event) => startDrag('axis2', event)}
+            />
+            <circle
+              cx={toScreen(axis1End).x}
+              cy={toScreen(axis1End).y}
+              r="7"
+              className="axis-rotation-handle"
+              aria-hidden="true"
+              onPointerDown={(event) => startDrag('axis1', event)}
+            />
+            <circle
+              cx={toScreen(axis2End).x}
+              cy={toScreen(axis2End).y}
+              r="7"
+              className="axis-rotation-handle"
+              aria-hidden="true"
+              onPointerDown={(event) => startDrag('axis2', event)}
+            />
+          </>
+        ) : null}
         <text x={toScreen(axis1End).x + 8} y={toScreen(axis1End).y - 6} className="axis-label">
           +{system.label1}
         </text>
@@ -214,9 +308,7 @@ export function SceneCanvas({ params, system, time, onSystemChange, interactive 
           aria-label="Coordinate origin. Drag or use arrow keys to move it."
           aria-valuetext={`origin X ${format(system.originWorld.x)} meters, Y ${format(system.originWorld.y)} meters`}
           onPointerDown={(event) => {
-            if (!interactive) return;
-            event.currentTarget.setPointerCapture(event.pointerId);
-            setDragging(true);
+            startDrag('origin', event);
           }}
           onKeyDown={handleKeyDown}
           className={interactive ? 'origin-handle interactive' : 'origin-handle'}

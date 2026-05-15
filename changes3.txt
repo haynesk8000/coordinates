@@ -1,0 +1,7 @@
+The website is great.  I need you to make the following changes:
+
+In addition to allow the origin of the cooordinate system to translate by draging it.  Allow the origin to rotate by draging either or the axes.  Allow the rotation to vary with the same range and resolution of the rotation slide bar.  From - 2 pi to 2 pi with a resolution of pi / 12.
+
+In the Coordinate System control area remove the textbox for Axis 1 and textbox for Axis 2
+
+In the Coordinate System control area, directly above the "z,y", "a,b", "r,s" buttons add one label that Axes Labels. 

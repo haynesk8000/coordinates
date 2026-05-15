@@ -33,6 +33,10 @@ export type CoordinateComponents = {
   acceleration: Vector2;
 };
 
+export const ROTATION_UNIT_RADIANS = Math.PI / 12;
+export const MIN_ROTATION_UNITS = -24;
+export const MAX_ROTATION_UNITS = 24;
+
 export const makeCoordinateSystem = (
   originWorld: Vector2,
   axis1: Vector2,
