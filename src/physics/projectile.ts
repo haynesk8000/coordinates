@@ -9,13 +9,25 @@ export type ProjectileParameters = {
   g: number;
 };
 
-export const defaultParameters: ProjectileParameters = {
+const baseDefaults = {
   H: 20,
   h: 8,
-  d1: 15,
-  d2: 20,
   v0: 12,
   g: 9.8,
+};
+
+const timeToHeight = (startHeight: number, endHeight: number, gravity: number): number =>
+  Math.sqrt((2 * (startHeight - endHeight)) / gravity);
+
+const landingDistance = (height: number, velocity: number, gravity: number): number =>
+  velocity * Math.sqrt((2 * height) / gravity);
+
+const distanceToWall = baseDefaults.v0 * timeToHeight(baseDefaults.H, baseDefaults.h, baseDefaults.g);
+
+export const defaultParameters: ProjectileParameters = {
+  ...baseDefaults,
+  d1: distanceToWall,
+  d2: landingDistance(baseDefaults.H, baseDefaults.v0, baseDefaults.g) - distanceToWall,
 };
 
 export const initialPositionWorld = (params: ProjectileParameters): Vector2 => vector(0, params.H);

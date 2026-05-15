@@ -1,6 +1,5 @@
 import { AlertTriangle, CheckCircle2, HelpCircle, Lightbulb } from 'lucide-react';
 import type { CoordinateSystem } from '../physics/coordinateSystem';
-import { getCoordinateComponents } from '../physics/coordinateSystem';
 import { formatEquationSet } from '../physics/equationFormatter';
 import { createPresets } from '../physics/presets';
 import type { ProjectileParameters } from '../physics/projectile';
@@ -13,8 +12,6 @@ type Props = {
   params: ProjectileParameters;
   system: CoordinateSystem;
 };
-
-const formatNumber = (value: number) => value.toFixed(2).replace(/\.?0+$/, '');
 
 const directionText = (axis: { x: number; y: number }) => {
   const parts = [];
@@ -65,7 +62,6 @@ export function ExplainMode({ params, system }: Props) {
   const presets = createPresets(params);
   const current = formatEquationSet(params, system);
   const defaultSystem = presets[0];
-  const components = getCoordinateComponents(params, system);
   const examples = [presets[0], presets[3], presets[4], presets[9]];
 
   return (
@@ -77,8 +73,8 @@ export function ExplainMode({ params, system }: Props) {
         </div>
         <ol className="derivation-list">
           <li>
-            <strong>Locate the origin.</strong> Right now it is at world ({formatNumber(system.originWorld.x)},{' '}
-            {formatNumber(system.originWorld.y)}), so the launch point is measured from there.
+            <strong>Locate the origin.</strong> The launch point is measured from the selected origin, so the initial
+            coordinates are written as signed starting values.
           </li>
           <li>
             <strong>Identify positive directions.</strong> Positive {system.label1} points {directionText(system.axis1)};
@@ -100,9 +96,8 @@ export function ExplainMode({ params, system }: Props) {
             <strong>Substitute.</strong> Use the same constant-acceleration form for each coordinate component.
           </li>
           <li>
-            <strong>Check the sense.</strong> The current acceleration vector is ({formatNumber(components.acceleration.x)},{' '}
-            {formatNumber(components.acceleration.y)}), so the gravity term belongs only where the axis has a vertical
-            projection.
+            <strong>Check the sense.</strong> The gravity term belongs only where the selected axis has a vertical
+            projection, and its sign follows whether that axis points with or against gravity.
           </li>
         </ol>
       </section>
@@ -139,7 +134,7 @@ export function ExplainMode({ params, system }: Props) {
           <h2>Worked Examples</h2>
         </div>
         <div className="examples-grid">
-          {examples.map((example, index) => (
+          {examples.map((example) => (
             <WorkedExample
               key={example.id}
               params={params}

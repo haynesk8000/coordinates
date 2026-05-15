@@ -11,12 +11,11 @@ type Props = {
 
 export function EquationPanel({ params, system }: Props) {
   const equations = formatEquationSet(params, system);
-  const gravityAxis =
-    equations.axis1.acceleration !== '0'
-      ? system.label1
-      : equations.axis2.acceleration !== '0'
-        ? system.label2
-        : 'neither coordinate';
+  const gravityAxes = [
+    equations.axis1.acceleration !== '0' ? system.label1 : null,
+    equations.axis2.acceleration !== '0' ? system.label2 : null,
+  ].filter(Boolean);
+  const gravityAxis = gravityAxes.length > 0 ? gravityAxes.join(' and ') : 'neither coordinate';
 
   return (
     <section className="panel equation-panel" aria-labelledby="equation-heading">
@@ -37,19 +36,6 @@ export function EquationPanel({ params, system }: Props) {
           block
           label={equations.axis2.simplifiedText}
           testId={`equation-${system.label2}`}
-        />
-        <p className="formula-label">Numerical form</p>
-        <MathBlock
-          expression={equations.axis1.numericLatex}
-          block
-          label={equations.axis1.numericText}
-          testId={`equation-${system.label1}-numeric`}
-        />
-        <MathBlock
-          expression={equations.axis2.numericLatex}
-          block
-          label={equations.axis2.numericText}
-          testId={`equation-${system.label2}-numeric`}
         />
       </div>
       <div className="insight-row">

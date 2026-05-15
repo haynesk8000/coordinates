@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Compass, FlaskConical, GraduationCap } from 'lucide-react';
 import { createPresets } from './physics/presets';
-import { defaultParameters, maxUsefulTime, type ProjectileParameters } from './physics/projectile';
+import { defaultParameters } from './physics/projectile';
 import type { CoordinateSystem } from './physics/coordinateSystem';
 import { ModeSwitcher, type Mode } from './components/ModeSwitcher';
 import { ExploreMode } from './components/ExploreMode';
@@ -28,33 +28,14 @@ const modeMeta: Record<Mode, { icon: typeof Compass; copy: string }> = {
 
 function App() {
   const [mode, setMode] = useState<Mode>('explore');
-  const [params, setParams] = useState<ProjectileParameters>(defaultParameters);
+  const params = defaultParameters;
   const presets = useMemo(() => createPresets(params), [params]);
   const [selectedPresetId, setSelectedPresetId] = useState('1');
   const [system, setSystem] = useState<CoordinateSystem>(presets[0]);
   const [time, setTime] = useState(0);
 
-  const selectedPreset = presets.find((preset) => preset.id === selectedPresetId) ?? presets[0];
   const activeMeta = modeMeta[mode];
   const Icon = activeMeta.icon;
-
-  const updateParams = (next: ProjectileParameters) => {
-    setParams(next);
-    setTime((current) => Math.min(current, maxUsefulTime(next)));
-    setSystem((currentSystem) => {
-      const updatedPreset = createPresets(next).find((preset) => preset.id === selectedPresetId);
-      if (!updatedPreset) return currentSystem;
-      const oldPreset = selectedPreset;
-      const wasOnPreset =
-        Math.abs(currentSystem.originWorld.x - oldPreset.originWorld.x) < 1e-6 &&
-        Math.abs(currentSystem.originWorld.y - oldPreset.originWorld.y) < 1e-6 &&
-        Math.abs(currentSystem.axis1.x - oldPreset.axis1.x) < 1e-6 &&
-        Math.abs(currentSystem.axis1.y - oldPreset.axis1.y) < 1e-6 &&
-        Math.abs(currentSystem.axis2.x - oldPreset.axis2.x) < 1e-6 &&
-        Math.abs(currentSystem.axis2.y - oldPreset.axis2.y) < 1e-6;
-      return wasOnPreset ? updatedPreset : currentSystem;
-    });
-  };
 
   const selectPreset = (presetId: string) => {
     const nextPreset = presets.find((preset) => preset.id === presetId) ?? presets[0];
@@ -85,7 +66,6 @@ function App() {
         {mode === 'explore' && (
           <ExploreMode
             params={params}
-            onParamsChange={updateParams}
             presets={presets}
             selectedPresetId={selectedPresetId}
             onPresetChange={selectPreset}

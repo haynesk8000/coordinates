@@ -10,7 +10,7 @@ export type CoordinatePreset = CoordinateSystem & {
 export const createPresets = (params: ProjectileParameters): CoordinatePreset[] => [
   {
     id: '1',
-    name: '1. Cliff top, x right, y up',
+    name: 'Cliff top, x right, y up',
     description: 'Origin at launch point; horizontal positive right; vertical positive up.',
     originKey: 'cliffTop',
     originWorld: vector(0, params.H),
@@ -21,7 +21,7 @@ export const createPresets = (params: ProjectileParameters): CoordinatePreset[] 
   },
   {
     id: '2',
-    name: '2. Cliff top, x left, y up',
+    name: 'Cliff top, x left, y up',
     description: 'Launch point origin with horizontal axis flipped against the velocity.',
     originKey: 'cliffTop',
     originWorld: vector(0, params.H),
@@ -32,7 +32,7 @@ export const createPresets = (params: ProjectileParameters): CoordinatePreset[] 
   },
   {
     id: '3',
-    name: '3. Cliff top, x left, y down',
+    name: 'Cliff top, x left, y down',
     description: 'Both physical directions are flipped from the default labels.',
     originKey: 'cliffTop',
     originWorld: vector(0, params.H),
@@ -43,7 +43,7 @@ export const createPresets = (params: ProjectileParameters): CoordinatePreset[] 
   },
   {
     id: '4',
-    name: '4. Cliff top, x right, y down',
+    name: 'Cliff top, x right, y down',
     description: 'Horizontal matches launch velocity; vertical points with gravity.',
     originKey: 'cliffTop',
     originWorld: vector(0, params.H),
@@ -54,7 +54,7 @@ export const createPresets = (params: ProjectileParameters): CoordinatePreset[] 
   },
   {
     id: '5',
-    name: '5. Ground origin, x right, y up',
+    name: 'Ground origin, x right, y up',
     description: 'Origin moved to the ground below launch while directions stay conventional.',
     originKey: 'groundBelowCliff',
     originWorld: vector(0, 0),
@@ -65,7 +65,7 @@ export const createPresets = (params: ProjectileParameters): CoordinatePreset[] 
   },
   {
     id: '6',
-    name: '6. Ground origin, x right, y down',
+    name: 'Ground origin, x right, y down',
     description: 'Origin at ground; vertical coordinate increases downward.',
     originKey: 'groundBelowCliff',
     originWorld: vector(0, 0),
@@ -76,7 +76,7 @@ export const createPresets = (params: ProjectileParameters): CoordinatePreset[] 
   },
   {
     id: '7',
-    name: '7. Ground origin, x left, y down',
+    name: 'Ground origin, x left, y down',
     description: 'Origin at ground; both axes are opposite of the usual directions.',
     originKey: 'groundBelowCliff',
     originWorld: vector(0, 0),
@@ -87,7 +87,7 @@ export const createPresets = (params: ProjectileParameters): CoordinatePreset[] 
   },
   {
     id: '8',
-    name: '8. Ground origin, x left, y up',
+    name: 'Ground origin, x left, y up',
     description: 'Origin at ground; horizontal coordinate is positive left.',
     originKey: 'groundBelowCliff',
     originWorld: vector(0, 0),
@@ -98,7 +98,7 @@ export const createPresets = (params: ProjectileParameters): CoordinatePreset[] 
   },
   {
     id: '9',
-    name: '9. Wall top origin, x right, y up',
+    name: 'Wall top origin, x right, y up',
     description: 'Origin near the wall top, so the launch point starts left and above that origin.',
     originKey: 'wallTop',
     originWorld: vector(params.d1, params.h),
@@ -109,7 +109,7 @@ export const createPresets = (params: ProjectileParameters): CoordinatePreset[] 
   },
   {
     id: '10',
-    name: '10. Swapped variables: x vertical, y horizontal',
+    name: 'Swapped variables: x vertical, y horizontal',
     description: 'The coordinate named x is vertical upward; the coordinate named y is horizontal right.',
     originKey: 'groundBelowCliff',
     originWorld: vector(0, 0),
@@ -120,7 +120,7 @@ export const createPresets = (params: ProjectileParameters): CoordinatePreset[] 
   },
   {
     id: '11',
-    name: '11. Landing origin, a right, b up',
+    name: 'Landing origin, a right, b up',
     description: 'Custom labels with the origin near the landing region.',
     originKey: 'landingPoint',
     originWorld: vector(params.d1 + params.d2, 0),
@@ -131,7 +131,7 @@ export const createPresets = (params: ProjectileParameters): CoordinatePreset[] 
   },
   {
     id: '12',
-    name: '12. Landing origin, a left, b down',
+    name: 'Landing origin, a left, b down',
     description: 'Custom labels with both directions flipped near the landing region.',
     originKey: 'landingPoint',
     originWorld: vector(params.d1 + params.d2, 0),

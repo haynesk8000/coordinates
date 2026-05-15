@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { FlipHorizontal, FlipVertical, RotateCcw, Shuffle, Tag } from 'lucide-react';
 import type { CoordinateSystem } from '../physics/coordinateSystem';
 import { flipAxis, setLabels, swapCoordinateVariables } from '../physics/coordinateSystem';
@@ -8,12 +8,10 @@ import { perpendicularLeft, scale, vector } from '../physics/vectors';
 import { SceneCanvas } from './SceneCanvas';
 import { EquationPanel } from './EquationPanel';
 import { ComponentBreakdown } from './ComponentBreakdown';
-import { ParameterControls } from './ParameterControls';
 import { TimeSlider } from './TimeSlider';
 
 type Props = {
   params: ProjectileParameters;
-  onParamsChange: (params: ProjectileParameters) => void;
   presets: CoordinatePreset[];
   selectedPresetId: string;
   onPresetChange: (presetId: string) => void;
@@ -29,10 +27,29 @@ const labelSets = {
   rs: ['r', 's'],
 };
 
-const angleOf = (system: CoordinateSystem) => Math.round((Math.atan2(system.axis1.y, system.axis1.x) * 180) / Math.PI);
+const rotationUnit = Math.PI / 12;
+const angleUnitOf = (system: CoordinateSystem) => Math.round(Math.atan2(system.axis1.y, system.axis1.x) / rotationUnit);
 
-function rotateTo(system: CoordinateSystem, degrees: number): CoordinateSystem {
-  const radians = (degrees * Math.PI) / 180;
+const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b));
+
+const formatPiMultiple = (units: number): string => {
+  if (units === 0) return '0 rad';
+  const denominator = 12;
+  const divisor = gcd(Math.abs(units), denominator);
+  const numerator = units / divisor;
+  const reducedDenominator = denominator / divisor;
+  const sign = numerator < 0 ? '-' : '';
+  const absoluteNumerator = Math.abs(numerator);
+
+  if (reducedDenominator === 1) {
+    return `${sign}${absoluteNumerator === 1 ? '' : absoluteNumerator}pi rad`;
+  }
+
+  return `${sign}${absoluteNumerator === 1 ? '' : absoluteNumerator}pi/${reducedDenominator} rad`;
+};
+
+function rotateTo(system: CoordinateSystem, units: number): CoordinateSystem {
+  const radians = units * rotationUnit;
   const axis1 = vector(Math.cos(radians), Math.sin(radians));
   const cross = system.axis1.x * system.axis2.y - system.axis1.y * system.axis2.x;
   const axis2 = cross >= 0 ? perpendicularLeft(axis1) : scale(perpendicularLeft(axis1), -1);
@@ -41,7 +58,6 @@ function rotateTo(system: CoordinateSystem, degrees: number): CoordinateSystem {
 
 export function ExploreMode({
   params,
-  onParamsChange,
   presets,
   selectedPresetId,
   onPresetChange,
@@ -52,17 +68,16 @@ export function ExploreMode({
 }: Props) {
   const [custom1, setCustom1] = useState(system.label1);
   const [custom2, setCustom2] = useState(system.label2);
-  const angle = useMemo(() => angleOf(system), [system]);
+  const [angleUnits, setAngleUnits] = useState(() => angleUnitOf(system));
   const selectedPreset = presets.find((preset) => preset.id === selectedPresetId) ?? presets[0];
+  const applySystemChange = (nextSystem: CoordinateSystem) => {
+    setAngleUnits(angleUnitOf(nextSystem));
+    onSystemChange(nextSystem);
+  };
 
-  const setOrigin = (axis: 'x' | 'y', value: number) => {
-    onSystemChange({
-      ...system,
-      originWorld: {
-        ...system.originWorld,
-        [axis]: value,
-      },
-    });
+  const setRotation = (nextAngleUnits: number) => {
+    setAngleUnits(nextAngleUnits);
+    onSystemChange(rotateTo(system, nextAngleUnits));
   };
 
   return (
@@ -81,7 +96,11 @@ export function ExploreMode({
               <select
                 aria-label="Coordinate preset"
                 value={selectedPresetId}
-                onChange={(event) => onPresetChange(event.target.value)}
+                onChange={(event) => {
+                  const nextPreset = presets.find((preset) => preset.id === event.target.value);
+                  if (nextPreset) setAngleUnits(angleUnitOf(nextPreset));
+                  onPresetChange(event.target.value);
+                }}
               >
                 {presets.map((preset) => (
                   <option key={preset.id} value={preset.id}>
@@ -92,86 +111,32 @@ export function ExploreMode({
             </label>
             <label>
               Rotation
-              <span className="inline-value">{angle} deg</span>
+              <span className="inline-value">{formatPiMultiple(angleUnits)}</span>
               <input
                 aria-label="Rotate coordinate axes"
                 type="range"
-                min="-180"
-                max="180"
-                step="5"
-                value={angle}
-                onChange={(event) => onSystemChange(rotateTo(system, Number(event.target.value)))}
-              />
-            </label>
-            <label>
-              Origin X_world
-              <span className="inline-value">{system.originWorld.x.toFixed(1)} m</span>
-              <input
-                aria-label="Coordinate origin X world"
-                type="range"
-                min="-12"
-                max={params.d1 + params.d2 + 12}
-                step="0.5"
-                value={system.originWorld.x}
-                onChange={(event) => setOrigin('x', Number(event.target.value))}
-              />
-            </label>
-            <label>
-              Origin X direct
-              <input
-                aria-label="Coordinate origin X direct input"
-                type="number"
-                min="-12"
-                max={params.d1 + params.d2 + 12}
-                step="0.1"
-                value={Number(system.originWorld.x.toFixed(2))}
-                onChange={(event) => {
-                  if (event.target.value !== '') setOrigin('x', Number(event.target.value));
-                }}
-              />
-            </label>
-            <label>
-              Origin Y_world
-              <span className="inline-value">{system.originWorld.y.toFixed(1)} m</span>
-              <input
-                aria-label="Coordinate origin Y world"
-                type="range"
-                min="-6"
-                max={params.H + 10}
-                step="0.5"
-                value={system.originWorld.y}
-                onChange={(event) => setOrigin('y', Number(event.target.value))}
-              />
-            </label>
-            <label>
-              Origin Y direct
-              <input
-                aria-label="Coordinate origin Y direct input"
-                type="number"
-                min="-6"
-                max={params.H + 10}
-                step="0.1"
-                value={Number(system.originWorld.y.toFixed(2))}
-                onChange={(event) => {
-                  if (event.target.value !== '') setOrigin('y', Number(event.target.value));
-                }}
+                min="-24"
+                max="24"
+                step="1"
+                value={angleUnits}
+                onChange={(event) => setRotation(Number(event.target.value))}
               />
             </label>
           </div>
           <div className="button-row">
-            <button type="button" className="tool-button" onClick={() => onSystemChange(flipAxis(system, 1))}>
+            <button type="button" className="tool-button" onClick={() => applySystemChange(flipAxis(system, 1))}>
               <FlipHorizontal aria-hidden="true" size={18} />
               Flip {system.label1}
             </button>
-            <button type="button" className="tool-button" onClick={() => onSystemChange(flipAxis(system, 2))}>
+            <button type="button" className="tool-button" onClick={() => applySystemChange(flipAxis(system, 2))}>
               <FlipVertical aria-hidden="true" size={18} />
               Flip {system.label2}
             </button>
-            <button type="button" className="tool-button" onClick={() => onSystemChange(swapCoordinateVariables(system))}>
+            <button type="button" className="tool-button" onClick={() => applySystemChange(swapCoordinateVariables(system))}>
               <Shuffle aria-hidden="true" size={18} />
               Swap variables
             </button>
-            <button type="button" className="tool-button" onClick={() => onSystemChange(selectedPreset)}>
+            <button type="button" className="tool-button" onClick={() => applySystemChange(selectedPreset)}>
               <RotateCcw aria-hidden="true" size={18} />
               Reset
             </button>
@@ -208,7 +173,6 @@ export function ExploreMode({
             </label>
           </div>
         </div>
-        <ParameterControls params={params} onChange={onParamsChange} />
       </div>
       <aside className="side-column">
         <EquationPanel params={params} system={system} />

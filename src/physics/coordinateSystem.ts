@@ -64,8 +64,7 @@ export const getCoordinateComponents = (
   acceleration: projectWorldVector(accelerationWorld(params), system),
 });
 
-export const rotateCoordinateSystem = (system: CoordinateSystem, degrees: number): CoordinateSystem => {
-  const radians = (degrees * Math.PI) / 180;
+export const rotateCoordinateSystem = (system: CoordinateSystem, radians: number): CoordinateSystem => {
   return {
     ...system,
     axis1: normalize(rotate(system.axis1, radians)),
@@ -79,8 +78,7 @@ export const flipAxis = (system: CoordinateSystem, axis: 1 | 2): CoordinateSyste
   axis2: axis === 2 ? scale(system.axis2, -1) : system.axis2,
 });
 
-export const setAxis1Angle = (system: CoordinateSystem, degrees: number): CoordinateSystem => {
-  const radians = (degrees * Math.PI) / 180;
+export const setAxis1Angle = (system: CoordinateSystem, radians: number): CoordinateSystem => {
   const axis1 = vector(Math.cos(radians), Math.sin(radians));
   return {
     ...system,

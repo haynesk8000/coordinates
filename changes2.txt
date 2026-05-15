@@ -1,0 +1,7 @@
+The website is great.  I need you to make the following changes:
+
+Make the color gray scale to accomodate color blind individuals.
+
+d1 and d2 are horizontal lengths.  D1 extents from base of clift H to h.  And d2 extents from the end of d1 to the point of impact.
+
+In symbolic form of equations, when theta is not zero show the value of theta in the equations.

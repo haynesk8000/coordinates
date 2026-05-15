@@ -1,0 +1,15 @@
+The website is great.  I need you to make the following changes:
+
+Remove all numerical references.  Both the numerical form of equations and the controls for Origin_X_world, Origin_Y_world, Origin X direct, Origin Y direct.
+
+The starting location of the projectile will always be x0, y0; however, the signs will change depending on the location of the origin.
+
+Rotation will vary from -2 pi to 2 pi in radians instead of degree.  The resolution of the slider will be pi / 12.  Always express values in units of pi times the reduced form of a faction.
+
+Make the color scheme suitable for color blind individuals.
+
+On the projectile extend the length of the arrows for g and v0 so it looks more like vector.
+
+Remove all of the contols in the Parameters section.
+
+d1 should remain unchanged from H to h.  d2 should be from h to impact location of projectile.

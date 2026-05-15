@@ -3,12 +3,11 @@ import { getCoordinateComponents } from './coordinateSystem';
 import type { ProjectileParameters } from './projectile';
 import { almostEqual, type Vector2 } from './vectors';
 
-type SymbolKey = 'H' | 'h' | 'd_1' | 'd_2' | 'v_0' | 'g';
 type TimePower = 0 | 1 | 2;
 
 type SymbolicTerm = {
   coefficient: number;
-  symbol?: SymbolKey;
+  symbol?: string;
   timePower: TimePower;
   trig?: 'sin' | 'cos';
 };
@@ -18,8 +17,6 @@ export type AxisEquation = {
   generalLatex: string;
   simplifiedLatex: string;
   simplifiedText: string;
-  numericLatex: string;
-  numericText: string;
   initialPosition: string;
   initialVelocity: string;
   acceleration: string;
@@ -41,36 +38,32 @@ const snap = (value: number): number => {
 
 const isCardinal = (axis: Vector2): boolean => [-1, 0, 1].includes(snap(axis.x)) && [-1, 0, 1].includes(snap(axis.y));
 
-const inferOriginTerms = (
-  system: CoordinateSystem,
-  params: ProjectileParameters,
-): { x: SymbolicTerm[]; y: SymbolicTerm[] } => {
-  if (almostEqual(system.originWorld.x, 0, EPSILON) && almostEqual(system.originWorld.y, params.H, EPSILON)) {
-    return { x: [], y: [{ coefficient: 1, symbol: 'H', timePower: 0 }] };
-  }
-  if (almostEqual(system.originWorld.x, 0, EPSILON) && almostEqual(system.originWorld.y, 0, EPSILON)) {
-    return { x: [], y: [] };
-  }
-  if (almostEqual(system.originWorld.x, params.d1, EPSILON) && almostEqual(system.originWorld.y, params.h, EPSILON)) {
-    return {
-      x: [{ coefficient: 1, symbol: 'd_1', timePower: 0 }],
-      y: [{ coefficient: 1, symbol: 'h', timePower: 0 }],
-    };
-  }
-  if (almostEqual(system.originWorld.x, params.d1 + params.d2, EPSILON) && almostEqual(system.originWorld.y, 0, EPSILON)) {
-    return {
-      x: [
-        { coefficient: 1, symbol: 'd_1', timePower: 0 },
-        { coefficient: 1, symbol: 'd_2', timePower: 0 },
-      ],
-      y: [],
-    };
+const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b));
+
+const thetaUnits = (system: CoordinateSystem): number => Math.round(Math.atan2(system.axis1.y, system.axis1.x) / (Math.PI / 12));
+
+const formatTheta = (system: CoordinateSystem, mode: 'latex' | 'text'): string => {
+  const units = thetaUnits(system);
+  if (units === 0) return mode === 'latex' ? '\\theta' : 'theta';
+
+  const denominator = 12;
+  const divisor = gcd(Math.abs(units), denominator);
+  const numerator = units / divisor;
+  const reducedDenominator = denominator / divisor;
+  const sign = numerator < 0 ? '-' : '';
+  const absoluteNumerator = Math.abs(numerator);
+  const piTerm = absoluteNumerator === 1 ? 'pi' : `${absoluteNumerator}pi`;
+
+  if (mode === 'text') {
+    return reducedDenominator === 1 ? `${sign}${piTerm}` : `${sign}${piTerm}/${reducedDenominator}`;
   }
 
-  return {
-    x: numericTerm(system.originWorld.x),
-    y: numericTerm(system.originWorld.y),
-  };
+  if (reducedDenominator === 1) {
+    return `${sign}${absoluteNumerator === 1 ? '\\pi' : `${absoluteNumerator}\\pi`}`;
+  }
+
+  const numeratorLatex = absoluteNumerator === 1 ? '\\pi' : `${absoluteNumerator}\\pi`;
+  return `${sign}\\frac{${numeratorLatex}}{${reducedDenominator}}`;
 };
 
 const addTerm = (terms: SymbolicTerm[], term: SymbolicTerm): void => {
@@ -86,26 +79,9 @@ const addTerm = (terms: SymbolicTerm[], term: SymbolicTerm): void => {
   }
 };
 
-const multiplyTerms = (terms: SymbolicTerm[], factor: number): SymbolicTerm[] =>
-  terms.map((term) => ({ ...term, coefficient: term.coefficient * factor }));
-
-const positionComponentTerms = (
-  axis: Vector2,
-  system: CoordinateSystem,
-  params: ProjectileParameters,
-): SymbolicTerm[] | null => {
-  const axisX = snap(axis.x);
-  const axisY = snap(axis.y);
-  if (!isCardinal(axis)) return null;
-
-  const origin = inferOriginTerms(system, params);
-  const worldInitial = { x: [] as SymbolicTerm[], y: [{ coefficient: 1, symbol: 'H' as SymbolKey, timePower: 0 as TimePower }] };
-  const relativeX = [...worldInitial.x, ...multiplyTerms(origin.x, -1)];
-  const relativeY = [...worldInitial.y, ...multiplyTerms(origin.y, -1)];
-  const result: SymbolicTerm[] = [];
-  multiplyTerms(relativeX, axisX).forEach((term) => addTerm(result, term));
-  multiplyTerms(relativeY, axisY).forEach((term) => addTerm(result, term));
-  return result;
+const positionComponentTerms = (label: string, initialPositionValue: number): SymbolicTerm[] => {
+  const sign = initialPositionValue < -EPSILON ? -1 : 1;
+  return [{ coefficient: sign, symbol: `${label}_0`, timePower: 0 }];
 };
 
 const velocityComponentTerms = (axis: Vector2): SymbolicTerm[] | null => {
@@ -120,19 +96,17 @@ const accelerationComponentTerms = (axis: Vector2): SymbolicTerm[] | null => {
   return axisY === 0 ? [] : [{ coefficient: -axisY, symbol: 'g', timePower: 0 }];
 };
 
-const numericTerm = (value: number, timePower: TimePower = 0): SymbolicTerm[] =>
-  almostEqual(value, 0, EPSILON) ? [] : [{ coefficient: value, timePower }];
-
-const symbolLatex = (symbol?: SymbolKey): string => {
+const symbolLatex = (symbol?: string): string => {
   if (!symbol) return '';
-  return symbol.replace('_', '_{') + (symbol.includes('_') ? '}' : '');
+  const [base, subscript] = symbol.split('_');
+  return subscript ? `${base}_{${subscript}}` : base;
 };
 
-const symbolText = (symbol?: SymbolKey): string => symbol?.replace('_', '') ?? '';
+const symbolText = (symbol?: string): string => symbol?.replaceAll('_', '') ?? '';
 
-const trigText = (trig?: SymbolicTerm['trig'], mode: 'latex' | 'text' = 'text'): string => {
+const trigText = (trig: SymbolicTerm['trig'] | undefined, mode: 'latex' | 'text', theta: string): string => {
   if (!trig) return '';
-  return mode === 'latex' ? `\\${trig}\\theta` : `${trig}(theta)`;
+  return mode === 'latex' ? `\\${trig}\\left(${theta}\\right)` : `${trig}(${theta})`;
 };
 
 const formatCoefficient = (coefficient: number, mode: 'latex' | 'text', includeOne: boolean): string => {
@@ -143,7 +117,7 @@ const formatCoefficient = (coefficient: number, mode: 'latex' | 'text', includeO
   return absolute.toFixed(2).replace(/\.?0+$/, '');
 };
 
-const formatSingleTerm = (term: SymbolicTerm, mode: 'latex' | 'text', first: boolean): string => {
+const formatSingleTerm = (term: SymbolicTerm, mode: 'latex' | 'text', first: boolean, theta: string): string => {
   const sign = term.coefficient < 0 ? (first ? '-' : ' - ') : first ? '' : ' + ';
   const symbol = mode === 'latex' ? symbolLatex(term.symbol) : symbolText(term.symbol);
   const time =
@@ -154,7 +128,7 @@ const formatSingleTerm = (term: SymbolicTerm, mode: 'latex' | 'text', first: boo
         : symbol
           ? 't^2'
           : 't^2';
-  const trig = trigText(term.trig, mode);
+  const trig = trigText(term.trig, mode, theta);
   const includeOne = !symbol && !time && !trig;
   const coefficient = formatCoefficient(term.coefficient, mode, includeOne);
   const factors = [symbol, time && !symbol ? time : '', time && symbol ? time : '', trig].filter(Boolean);
@@ -172,134 +146,83 @@ const cleanTerms = (terms: SymbolicTerm[]): SymbolicTerm[] =>
         (a.trig ?? '').localeCompare(b.trig ?? ''),
     );
 
-const formatTerms = (terms: SymbolicTerm[], mode: 'latex' | 'text'): string => {
+const formatTerms = (terms: SymbolicTerm[], mode: 'latex' | 'text', theta: string): string => {
   const cleaned = cleanTerms(terms);
   if (cleaned.length === 0) return '0';
-  return cleaned.map((term, index) => formatSingleTerm(term, mode, index === 0)).join('');
+  return cleaned.map((term, index) => formatSingleTerm(term, mode, index === 0, theta)).join('');
 };
 
-const componentText = (symbolic: SymbolicTerm[] | null, numeric: number): string =>
-  symbolic ? formatTerms(symbolic, 'text') : numeric.toFixed(2).replace(/\.?0+$/, '');
+const componentText = (symbolic: SymbolicTerm[], theta: string): string => formatTerms(symbolic, 'text', theta);
 
 const buildEquationTerms = (
-  position: SymbolicTerm[] | null,
-  velocity: SymbolicTerm[] | null,
-  acceleration: SymbolicTerm[] | null,
-  numeric: { position: number; velocity: number; acceleration: number },
+  position: SymbolicTerm[],
+  velocity: SymbolicTerm[],
+  acceleration: SymbolicTerm[],
 ): SymbolicTerm[] => {
   const terms: SymbolicTerm[] = [];
-  const posTerms = position ?? numericTerm(numeric.position);
-  const velTerms = velocity ?? numericTerm(numeric.velocity);
-  const accTerms = acceleration ?? numericTerm(numeric.acceleration);
-
-  posTerms.forEach((term) => addTerm(terms, term));
-  velTerms.forEach((term) => addTerm(terms, { ...term, timePower: 1 }));
-  accTerms.forEach((term) => addTerm(terms, { ...term, coefficient: 0.5 * term.coefficient, timePower: 2 }));
+  position.forEach((term) => addTerm(terms, term));
+  velocity.forEach((term) => addTerm(terms, { ...term, timePower: 1 }));
+  acceleration.forEach((term) => addTerm(terms, { ...term, coefficient: 0.5 * term.coefficient, timePower: 2 }));
   return terms;
 };
 
-const buildNumericEquationTerms = (numeric: {
-  position: number;
-  velocity: number;
-  acceleration: number;
-}): SymbolicTerm[] => {
-  const terms: SymbolicTerm[] = [];
-  numericTerm(numeric.position).forEach((term) => addTerm(terms, term));
-  numericTerm(numeric.velocity, 1).forEach((term) => addTerm(terms, term));
-  numericTerm(0.5 * numeric.acceleration, 2).forEach((term) => addTerm(terms, term));
-  return terms;
-};
-
-const worldRelativeTerms = (
-  system: CoordinateSystem,
-  params: ProjectileParameters,
-): { x: SymbolicTerm[]; y: SymbolicTerm[] } => {
-  const origin = inferOriginTerms(system, params);
-  const x: SymbolicTerm[] = [];
-  const y: SymbolicTerm[] = [];
-
-  multiplyTerms(origin.x, -1).forEach((term) => addTerm(x, term));
-  addTerm(x, { coefficient: 1, symbol: 'v_0', timePower: 1 });
-
-  addTerm(y, { coefficient: 1, symbol: 'H', timePower: 0 });
-  multiplyTerms(origin.y, -1).forEach((term) => addTerm(y, term));
-  addTerm(y, { coefficient: -0.5, symbol: 'g', timePower: 2 });
-
-  return { x, y };
-};
-
-const multiplyTermsWithTrig = (
-  terms: SymbolicTerm[],
-  coefficient: number,
-  trig: NonNullable<SymbolicTerm['trig']>,
-): SymbolicTerm[] => terms.map((term) => ({ ...term, coefficient: term.coefficient * coefficient, trig }));
-
-const rotatedEquationTerms = (
-  axisIndex: 1 | 2,
-  system: CoordinateSystem,
-  params: ProjectileParameters,
-): SymbolicTerm[] => {
-  const relative = worldRelativeTerms(system, params);
+const rotatedVelocityComponentTerms = (axisIndex: 1 | 2, system: CoordinateSystem): SymbolicTerm[] => {
   const cross = system.axis1.x * system.axis2.y - system.axis1.y * system.axis2.x;
-  const terms: SymbolicTerm[] = [];
 
   if (axisIndex === 1) {
-    multiplyTermsWithTrig(relative.x, 1, 'cos').forEach((term) => addTerm(terms, term));
-    multiplyTermsWithTrig(relative.y, 1, 'sin').forEach((term) => addTerm(terms, term));
-    return terms;
+    return [{ coefficient: 1, symbol: 'v_0', timePower: 0, trig: 'cos' }];
   }
 
-  const xSign = cross >= 0 ? -1 : 1;
-  const ySign = cross >= 0 ? 1 : -1;
-  multiplyTermsWithTrig(relative.x, xSign, 'sin').forEach((term) => addTerm(terms, term));
-  multiplyTermsWithTrig(relative.y, ySign, 'cos').forEach((term) => addTerm(terms, term));
-  return terms;
+  return [{ coefficient: cross >= 0 ? -1 : 1, symbol: 'v_0', timePower: 0, trig: 'sin' }];
+};
+
+const rotatedAccelerationComponentTerms = (axisIndex: 1 | 2, system: CoordinateSystem): SymbolicTerm[] => {
+  const cross = system.axis1.x * system.axis2.y - system.axis1.y * system.axis2.x;
+
+  if (axisIndex === 1) {
+    return [{ coefficient: -1, symbol: 'g', timePower: 0, trig: 'sin' }];
+  }
+
+  return [{ coefficient: cross >= 0 ? -1 : 1, symbol: 'g', timePower: 0, trig: 'cos' }];
 };
 
 const axisEquation = (
   label: string,
   axis: Vector2,
   system: CoordinateSystem,
-  params: ProjectileParameters,
-  numeric: { position: number; velocity: number; acceleration: number },
+  componentValues: { position: number; velocity: number; acceleration: number },
   axisIndex: 1 | 2,
 ): AxisEquation => {
-  const position = positionComponentTerms(axis, system, params);
-  const velocity = velocityComponentTerms(axis);
-  const acceleration = accelerationComponentTerms(axis);
-  const equationTerms =
-    position && velocity && acceleration
-      ? buildEquationTerms(position, velocity, acceleration, numeric)
-      : rotatedEquationTerms(axisIndex, system, params);
-  const numericTerms = buildNumericEquationTerms(numeric);
+  const position = positionComponentTerms(label, componentValues.position);
+  const velocity = velocityComponentTerms(axis) ?? rotatedVelocityComponentTerms(axisIndex, system);
+  const acceleration = accelerationComponentTerms(axis) ?? rotatedAccelerationComponentTerms(axisIndex, system);
+  const equationTerms = buildEquationTerms(position, velocity, acceleration);
   const generalLatex = `${label}(t) = ${label}_0 + v_{${label},0} t + \\frac{1}{2} a_${label} t^2`;
-  const rightSideLatex = formatTerms(equationTerms, 'latex');
-  const rightSideText = formatTerms(equationTerms, 'text');
-  const numericRightSideLatex = formatTerms(numericTerms, 'latex');
-  const numericRightSideText = formatTerms(numericTerms, 'text');
+  const latexTheta = formatTheta(system, 'latex');
+  const textTheta = formatTheta(system, 'text');
+  const rightSideLatex = formatTerms(equationTerms, 'latex', latexTheta);
+  const rightSideText = formatTerms(equationTerms, 'text', textTheta);
 
   return {
     label,
     generalLatex,
     simplifiedLatex: `${label}(t) = ${rightSideLatex}`,
     simplifiedText: `${label}(t) = ${rightSideText}`,
-    numericLatex: `${label}(t) = ${numericRightSideLatex}`,
-    numericText: `${label}(t) = ${numericRightSideText}`,
-    initialPosition: componentText(position, numeric.position),
-    initialVelocity: componentText(velocity, numeric.velocity),
-    acceleration: componentText(acceleration, numeric.acceleration),
+    initialPosition: componentText(position, textTheta),
+    initialVelocity: componentText(velocity, textTheta),
+    acceleration: componentText(acceleration, textTheta),
   };
 };
 
 export const formatEquationSet = (params: ProjectileParameters, system: CoordinateSystem): EquationSet => {
   const components = getCoordinateComponents(params, system);
   return {
-    axis1: axisEquation(system.label1, system.axis1, system, params, {
+    axis1: axisEquation(system.label1, system.axis1, system, {
       position: components.position0.x,
       velocity: components.velocity0.x,
       acceleration: components.acceleration.x,
     }, 1),
-    axis2: axisEquation(system.label2, system.axis2, system, params, {
+    axis2: axisEquation(system.label2, system.axis2, system, {
       position: components.position0.y,
       velocity: components.velocity0.y,
       acceleration: components.acceleration.y,

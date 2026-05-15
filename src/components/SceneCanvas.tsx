@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import type { CoordinateSystem } from '../physics/coordinateSystem';
-import { coordinateAtTime } from '../physics/coordinateSystem';
 import {
   accelerationWorld,
   initialVelocityWorld,
+  landingTime,
   trajectorySamples,
   worldPositionAtTime,
   type ProjectileParameters,
@@ -48,7 +48,6 @@ export function SceneCanvas({ params, system, time, onSystemChange, interactive 
   const [dragging, setDragging] = useState(false);
   const bounds = useMemo(() => makeBounds(params, system), [params, system]);
   const projectile = worldPositionAtTime(params, time);
-  const coordinates = coordinateAtTime(params, system, time);
   const path = trajectorySamples(params);
   const velocity = initialVelocityWorld(params);
   const acceleration = accelerationWorld(params);
@@ -117,8 +116,8 @@ export function SceneCanvas({ params, system, time, onSystemChange, interactive 
 
   const axis1End = add(system.originWorld, scale(system.axis1, axisLength));
   const axis2End = add(system.originWorld, scale(system.axis2, axisLength));
-  const velocityEnd = add(projectile, scale(velocity, 0.18));
-  const accelerationEnd = add(projectile, scale(acceleration, 0.25));
+  const velocityEnd = add(projectile, scale(velocity, 0.42));
+  const accelerationEnd = add(projectile, scale(acceleration, 0.5));
   const positionLine = line(system.originWorld, projectile);
   const wallBase = toScreen(vector(params.d1, 0));
   const wallTop = toScreen(vector(params.d1, params.h));
@@ -128,6 +127,9 @@ export function SceneCanvas({ params, system, time, onSystemChange, interactive 
   const cliffBase = toScreen(vector(0, 0));
   const projectileScreen = toScreen(projectile);
   const originScreen = toScreen(system.originWorld);
+  const impact = toScreen(worldPositionAtTime(params, landingTime(params)));
+  const d1Y = groundRight.y + 22;
+  const d2Y = groundRight.y + 48;
 
   return (
     <figure className={small ? 'scene small-scene' : 'scene'}>
@@ -142,16 +144,16 @@ export function SceneCanvas({ params, system, time, onSystemChange, interactive 
       >
         <defs>
           <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L9,3 z" fill="#1f6feb" />
+            <path d="M0,0 L0,6 L9,3 z" fill="#222222" />
           </marker>
           <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L9,3 z" fill="#c0392b" />
+            <path d="M0,0 L0,6 L9,3 z" fill="#555555" />
           </marker>
           <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L9,3 z" fill="#16835f" />
+            <path d="M0,0 L0,6 L9,3 z" fill="#333333" />
           </marker>
           <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L9,3 z" fill="#6f42c1" />
+            <path d="M0,0 L0,6 L9,3 z" fill="#888888" />
           </marker>
         </defs>
 
@@ -176,12 +178,12 @@ export function SceneCanvas({ params, system, time, onSystemChange, interactive 
         <text x={wallBase.x + 10} y={(wallBase.y + wallTop.y) / 2} className="scene-label">
           h
         </text>
-        <line x1={cliffTop.x} y1={groundRight.y + 22} x2={wallBase.x} y2={groundRight.y + 22} className="dimension" />
-        <text x={(cliffTop.x + wallBase.x) / 2 - 8} y={groundRight.y + 39} className="scene-label">
+        <line x1={cliffBase.x} y1={d1Y} x2={wallBase.x} y2={d1Y} className="dimension" />
+        <text x={(cliffBase.x + wallBase.x) / 2 - 8} y={d1Y + 17} className="scene-label">
           d1
         </text>
-        <line x1={wallBase.x} y1={groundRight.y + 48} x2={toScreen(vector(params.d1 + params.d2, 0)).x} y2={groundRight.y + 48} className="dimension" />
-        <text x={(wallBase.x + toScreen(vector(params.d1 + params.d2, 0)).x) / 2 - 8} y={groundRight.y + 66} className="scene-label">
+        <line x1={wallBase.x} y1={d2Y} x2={impact.x} y2={d2Y} className="dimension" />
+        <text x={(wallBase.x + impact.x) / 2 - 8} y={d2Y + 17} className="scene-label">
           d2
         </text>
 
@@ -224,9 +226,8 @@ export function SceneCanvas({ params, system, time, onSystemChange, interactive 
         </g>
       </svg>
       <figcaption>
-        Same motion, different coordinate description. Physical position: ({format(projectile.x)} m,{' '}
-        {format(projectile.y)} m). Coordinate values: {system.label1} = {format(coordinates.x)} m, {system.label2} ={' '}
-        {format(coordinates.y)} m.
+        Same motion, different coordinate description. The projectile starts at ({system.label1}0, {system.label2}0)
+        in the selected coordinates; only the description changes when the axes move.
       </figcaption>
     </figure>
   );
