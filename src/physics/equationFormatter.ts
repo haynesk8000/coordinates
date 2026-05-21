@@ -1,7 +1,7 @@
 import type { CoordinateSystem } from './coordinateSystem';
 import { getCoordinateComponents } from './coordinateSystem';
 import type { ProjectileParameters } from './projectile';
-import { almostEqual, type Vector2 } from './vectors';
+import { almostEqual, almostVector, type Vector2 } from './vectors';
 
 type TimePower = 0 | 1 | 2;
 
@@ -84,6 +84,78 @@ const positionComponentTerms = (label: string, initialPositionValue: number): Sy
   return [{ coefficient: sign, symbol: `${label}_0`, timePower: 0 }];
 };
 
+const multiplyTerms = (
+  terms: SymbolicTerm[],
+  coefficient: number,
+  trig?: SymbolicTerm['trig'],
+): SymbolicTerm[] => terms.map((term) => ({ ...term, coefficient: term.coefficient * coefficient, trig }));
+
+const presetRelativePositionTerms = (
+  params: ProjectileParameters,
+  system: CoordinateSystem,
+): { x: SymbolicTerm[]; y: SymbolicTerm[] } | null => {
+  const origin = system.originWorld;
+
+  if (almostVector(origin, { x: 0, y: params.H }, EPSILON)) {
+    return { x: [], y: [] };
+  }
+
+  if (almostVector(origin, { x: 0, y: 0 }, EPSILON)) {
+    return { x: [], y: [{ coefficient: 1, symbol: 'H', timePower: 0 }] };
+  }
+
+  if (almostVector(origin, { x: params.d1, y: params.h }, EPSILON)) {
+    return {
+      x: [{ coefficient: -1, symbol: 'd_1', timePower: 0 }],
+      y: [
+        { coefficient: 1, symbol: 'H', timePower: 0 },
+        { coefficient: -1, symbol: 'h', timePower: 0 },
+      ],
+    };
+  }
+
+  if (almostVector(origin, { x: params.d1 + params.d2, y: 0 }, EPSILON)) {
+    return {
+      x: [
+        { coefficient: -1, symbol: 'd_1', timePower: 0 },
+        { coefficient: -1, symbol: 'd_2', timePower: 0 },
+      ],
+      y: [{ coefficient: 1, symbol: 'H', timePower: 0 }],
+    };
+  }
+
+  return null;
+};
+
+const symbolicPositionComponentTerms = (
+  params: ProjectileParameters,
+  system: CoordinateSystem,
+  axis: Vector2,
+  axisIndex: 1 | 2,
+  label: string,
+  initialPositionValue: number,
+): SymbolicTerm[] => {
+  const relative = presetRelativePositionTerms(params, system);
+  if (!relative) return positionComponentTerms(label, initialPositionValue);
+
+  const axisX = snap(axis.x);
+  const axisY = snap(axis.y);
+  if (isCardinal(axis)) {
+    return [...multiplyTerms(relative.x, axisX), ...multiplyTerms(relative.y, axisY)];
+  }
+
+  const cross = system.axis1.x * system.axis2.y - system.axis1.y * system.axis2.x;
+  if (axisIndex === 1) {
+    return [...multiplyTerms(relative.x, 1, 'cos'), ...multiplyTerms(relative.y, 1, 'sin')];
+  }
+
+  if (cross >= 0) {
+    return [...multiplyTerms(relative.x, -1, 'sin'), ...multiplyTerms(relative.y, 1, 'cos')];
+  }
+
+  return [...multiplyTerms(relative.x, 1, 'sin'), ...multiplyTerms(relative.y, -1, 'cos')];
+};
+
 const velocityComponentTerms = (axis: Vector2): SymbolicTerm[] | null => {
   const axisX = snap(axis.x);
   if (!isCardinal(axis)) return null;
@@ -142,9 +214,16 @@ const cleanTerms = (terms: SymbolicTerm[]): SymbolicTerm[] =>
     .sort(
       (a, b) =>
         a.timePower - b.timePower ||
+        symbolSortRank(a.symbol) - symbolSortRank(b.symbol) ||
         (a.symbol ?? '').localeCompare(b.symbol ?? '') ||
         (a.trig ?? '').localeCompare(b.trig ?? ''),
     );
+
+const symbolSortRank = (symbol?: string): number => {
+  const order = ['H', 'h', 'd_1', 'd_2', 'v_0', 'g'];
+  const index = order.indexOf(symbol ?? '');
+  return index === -1 ? order.length : index;
+};
 
 const formatTerms = (terms: SymbolicTerm[], mode: 'latex' | 'text', theta: string): string => {
   const cleaned = cleanTerms(terms);
@@ -187,13 +266,14 @@ const rotatedAccelerationComponentTerms = (axisIndex: 1 | 2, system: CoordinateS
 };
 
 const axisEquation = (
+  params: ProjectileParameters,
   label: string,
   axis: Vector2,
   system: CoordinateSystem,
   componentValues: { position: number; velocity: number; acceleration: number },
   axisIndex: 1 | 2,
 ): AxisEquation => {
-  const position = positionComponentTerms(label, componentValues.position);
+  const position = symbolicPositionComponentTerms(params, system, axis, axisIndex, label, componentValues.position);
   const velocity = velocityComponentTerms(axis) ?? rotatedVelocityComponentTerms(axisIndex, system);
   const acceleration = accelerationComponentTerms(axis) ?? rotatedAccelerationComponentTerms(axisIndex, system);
   const equationTerms = buildEquationTerms(position, velocity, acceleration);
@@ -217,12 +297,12 @@ const axisEquation = (
 export const formatEquationSet = (params: ProjectileParameters, system: CoordinateSystem): EquationSet => {
   const components = getCoordinateComponents(params, system);
   return {
-    axis1: axisEquation(system.label1, system.axis1, system, {
+    axis1: axisEquation(params, system.label1, system.axis1, system, {
       position: components.position0.x,
       velocity: components.velocity0.x,
       acceleration: components.acceleration.x,
     }, 1),
-    axis2: axisEquation(system.label2, system.axis2, system, {
+    axis2: axisEquation(params, system.label2, system.axis2, system, {
       position: components.position0.y,
       velocity: components.velocity0.y,
       acceleration: components.acceleration.y,

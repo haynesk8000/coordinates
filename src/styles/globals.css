@@ -215,7 +215,7 @@ h3 {
 .scene svg {
   width: 100%;
   display: block;
-  aspect-ratio: 860 / 470;
+  aspect-ratio: 860 / 490;
   min-height: 310px;
   touch-action: none;
 }
@@ -273,21 +273,22 @@ h3 {
 
 .velocity-vector {
   stroke: var(--teal);
-  stroke-width: 3;
+  stroke-width: 2;
 }
 
 .accel-vector {
   stroke: var(--red);
-  stroke-width: 3;
+  stroke-width: 2;
 }
 
 .axis {
   stroke: var(--blue);
-  stroke-width: 3.5;
+  stroke-width: 1.6;
+  stroke-dasharray: 5 4;
 }
 
 .axis-two {
-  stroke-dasharray: 7 4;
+  stroke-dasharray: 5 4;
 }
 
 .axis-hit-zone {
@@ -311,7 +312,7 @@ h3 {
 }
 
 .origin-handle circle {
-  fill: #ffffff;
+  fill: transparent;
   stroke: #222222;
   stroke-width: 3;
 }

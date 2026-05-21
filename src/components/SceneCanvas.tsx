@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import {
   MAX_ROTATION_UNITS,
   MIN_ROTATION_UNITS,
@@ -14,6 +14,16 @@ import {
   type ProjectileParameters,
 } from '../physics/projectile';
 import { add, magnitude, scale, subtract, type Vector2, vector } from '../physics/vectors';
+import {
+  clampSystemToScene,
+  createSceneBounds,
+  SCENE_AXIS_LENGTH,
+  SCENE_SCREEN_HEIGHT,
+  SCENE_SCREEN_WIDTH,
+  sceneScreenToWorld,
+  screenAxisEndpoint,
+  worldToSceneScreen,
+} from '../physics/sceneGeometry';
 
 type Props = {
   params: ProjectileParameters;
@@ -26,31 +36,13 @@ type Props = {
   small?: boolean;
 };
 
-type Bounds = {
-  minX: number;
-  maxX: number;
-  minY: number;
-  maxY: number;
-  width: number;
-  height: number;
-};
-
-const screenWidth = 860;
-const screenHeight = 470;
+const screenWidth = SCENE_SCREEN_WIDTH;
+const screenHeight = SCENE_SCREEN_HEIGHT;
 const axis2QuarterTurnUnits = 6;
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const clampRotationUnits = (units: number) => Math.min(MAX_ROTATION_UNITS, Math.max(MIN_ROTATION_UNITS, units));
 
 type DragTarget = 'origin' | 'axis1' | 'axis2' | null;
-
-const makeBounds = (params: ProjectileParameters, system: CoordinateSystem): Bounds => {
-  const minX = Math.min(-12, system.originWorld.x - 8);
-  const maxX = Math.max(params.d1 + params.d2 + 12, system.originWorld.x + 8);
-  const minY = Math.min(-6, system.originWorld.y - 8);
-  const maxY = Math.max(params.H + 8, system.originWorld.y + 8, params.h + 8);
-  return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
-};
 
 const format = (value: number) => value.toFixed(1).replace(/\.0$/, '');
 
@@ -66,38 +58,41 @@ export function SceneCanvas({
 }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [dragging, setDragging] = useState<DragTarget>(null);
-  const bounds = useMemo(() => makeBounds(params, system), [params, system]);
+  const bounds = useMemo(() => createSceneBounds(params), [params]);
   const projectile = worldPositionAtTime(params, time);
   const path = trajectorySamples(params);
   const velocity = initialVelocityWorld(params);
   const acceleration = accelerationWorld(params);
-  const axisLength = Math.max(6, Math.min(bounds.width, bounds.height) * 0.2);
+  const axisLength = SCENE_AXIS_LENGTH;
+
+  useEffect(() => {
+    if (!interactive) return;
+    const clampedSystem = clampSystemToScene(system, params, axisLength);
+    if (
+      Math.abs(clampedSystem.originWorld.x - system.originWorld.x) > 0.001 ||
+      Math.abs(clampedSystem.originWorld.y - system.originWorld.y) > 0.001
+    ) {
+      onSystemChange?.(clampedSystem);
+    }
+  }, [axisLength, interactive, onSystemChange, params, system]);
 
   const toScreen = (point: Vector2): Vector2 =>
-    vector(
-      ((point.x - bounds.minX) / bounds.width) * screenWidth,
-      screenHeight - ((point.y - bounds.minY) / bounds.height) * screenHeight,
-    );
+    worldToSceneScreen(point, bounds);
 
   const toWorld = (clientX: number, clientY: number): Vector2 => {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return system.originWorld;
     const sx = ((clientX - rect.left) / rect.width) * screenWidth;
     const sy = ((clientY - rect.top) / rect.height) * screenHeight;
-    return vector(
-      bounds.minX + (sx / screenWidth) * bounds.width,
-      bounds.minY + ((screenHeight - sy) / screenHeight) * bounds.height,
-    );
+    return sceneScreenToWorld(vector(sx, sy), bounds);
   };
 
   const updateOrigin = (originWorld: Vector2) => {
-    onSystemChange?.({
+    const nextSystem = clampSystemToScene({
       ...system,
-      originWorld: vector(
-        clamp(originWorld.x, bounds.minX + 1, bounds.maxX - 1),
-        clamp(originWorld.y, bounds.minY + 1, bounds.maxY - 1),
-      ),
-    });
+      originWorld,
+    }, params, axisLength);
+    onSystemChange?.(nextSystem);
   };
 
   const nearestRotationEquivalent = (rawUnits: number) => {
@@ -176,8 +171,10 @@ export function SceneCanvas({
     }
   };
 
-  const axis1End = add(system.originWorld, scale(system.axis1, axisLength));
-  const axis2End = add(system.originWorld, scale(system.axis2, axisLength));
+  const axis1EndScreen = screenAxisEndpoint(system.originWorld, system.axis1, bounds, axisLength);
+  const axis2EndScreen = screenAxisEndpoint(system.originWorld, system.axis2, bounds, axisLength);
+  const axis1End = sceneScreenToWorld(axis1EndScreen, bounds);
+  const axis2End = sceneScreenToWorld(axis2EndScreen, bounds);
   const velocityEnd = add(projectile, scale(velocity, 0.42));
   const accelerationEnd = add(projectile, scale(acceleration, 0.5));
   const positionLine = line(system.originWorld, projectile);
@@ -237,7 +234,7 @@ export function SceneCanvas({
           rx="2"
           className="wall"
         />
-        <text x={wallBase.x + 10} y={(wallBase.y + wallTop.y) / 2} className="scene-label">
+        <text x={wallBase.x + 10} y={(wallBase.y + wallTop.y) / 2 + 5} className="scene-label">
           h
         </text>
         <line x1={cliffBase.x} y1={d1Y} x2={wallBase.x} y2={d1Y} className="dimension" />

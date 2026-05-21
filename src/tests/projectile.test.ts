@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultParameters, worldPositionAtTime } from '../physics/projectile';
+import { defaultParameters, landingTime, maxUsefulTime, worldPositionAtTime } from '../physics/projectile';
 
 describe('projectile motion', () => {
   it('starts at the cliff top', () => {
@@ -10,5 +10,10 @@ describe('projectile motion', () => {
     const position = worldPositionAtTime(defaultParameters, 2);
     expect(position.x).toBe(defaultParameters.v0 * 2);
     expect(position.y).toBeCloseTo(defaultParameters.H - 0.5 * defaultParameters.g * 4);
+  });
+
+  it('caps useful animation time at ground impact', () => {
+    expect(maxUsefulTime(defaultParameters)).toBe(landingTime(defaultParameters));
+    expect(worldPositionAtTime(defaultParameters, maxUsefulTime(defaultParameters)).y).toBeCloseTo(0);
   });
 });

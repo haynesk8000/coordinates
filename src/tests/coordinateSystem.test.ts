@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCoordinateComponents, projectWorldPoint } from '../physics/coordinateSystem';
+import { getCoordinateComponents, makeCoordinateSystem, projectWorldPoint, rotateCoordinateSystem } from '../physics/coordinateSystem';
 import { createPresets } from '../physics/presets';
 import { defaultParameters } from '../physics/projectile';
 import { dot, normalize, vector } from '../physics/vectors';
@@ -59,5 +59,12 @@ describe('coordinate projection', () => {
     expect(components.velocity0.y).toBe(defaultParameters.v0);
     expect(components.acceleration.x).toBe(-defaultParameters.g);
     expect(components.acceleration.y).toBe(0);
+  });
+
+  it('keeps axes perpendicular when a coordinate system is created and rotated', () => {
+    const system = makeCoordinateSystem(vector(0, 0), vector(1, 0), vector(1, 1));
+    const rotated = rotateCoordinateSystem(system, Math.PI / 4);
+
+    expect(dot(rotated.axis1, rotated.axis2)).toBeCloseTo(0);
   });
 });

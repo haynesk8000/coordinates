@@ -45,11 +45,7 @@ export const worldPositionAtTime = (params: ProjectileParameters, time: number):
 
 export const landingTime = (params: ProjectileParameters): number => Math.sqrt((2 * params.H) / params.g);
 
-export const maxUsefulTime = (params: ProjectileParameters): number => {
-  const naturalLanding = landingTime(params);
-  const byDistance = (params.d1 + params.d2 + 8) / Math.max(params.v0, 1);
-  return Math.max(naturalLanding, byDistance);
-};
+export const maxUsefulTime = (params: ProjectileParameters): number => landingTime(params);
 
 export const trajectorySamples = (params: ProjectileParameters, count = 80): Vector2[] => {
   const end = landingTime(params);

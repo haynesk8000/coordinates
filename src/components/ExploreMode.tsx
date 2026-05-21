@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FlipHorizontal, FlipVertical, RotateCcw, Shuffle, Tag } from 'lucide-react';
+import { FlipHorizontal, FlipVertical, RotateCcw, Tag } from 'lucide-react';
 import type { CoordinateSystem } from '../physics/coordinateSystem';
 import {
   flipAxis,
@@ -7,11 +7,11 @@ import {
   MIN_ROTATION_UNITS,
   ROTATION_UNIT_RADIANS,
   setLabels,
-  swapCoordinateVariables,
 } from '../physics/coordinateSystem';
 import type { CoordinatePreset } from '../physics/presets';
 import type { ProjectileParameters } from '../physics/projectile';
 import { perpendicularLeft, scale, vector } from '../physics/vectors';
+import { clampSystemToScene } from '../physics/sceneGeometry';
 import { SceneCanvas } from './SceneCanvas';
 import { EquationPanel } from './EquationPanel';
 import { ComponentBreakdown } from './ComponentBreakdown';
@@ -32,6 +32,7 @@ const labelSets = {
   xy: ['x', 'y'],
   ab: ['a', 'b'],
   rs: ['r', 's'],
+  thetaPhi: ['θ', 'φ'],
 };
 
 const angleUnitOf = (system: CoordinateSystem) => Math.round(Math.atan2(system.axis1.y, system.axis1.x) / ROTATION_UNIT_RADIANS);
@@ -75,14 +76,16 @@ export function ExploreMode({
   const [angleUnits, setAngleUnits] = useState(() => angleUnitOf(system));
   const selectedPreset = presets.find((preset) => preset.id === selectedPresetId) ?? presets[0];
   const applySystemChange = (nextSystem: CoordinateSystem) => {
-    setAngleUnits(angleUnitOf(nextSystem));
-    onSystemChange(nextSystem);
+    const clampedSystem = clampSystemToScene(nextSystem, params);
+    setAngleUnits(angleUnitOf(clampedSystem));
+    onSystemChange(clampedSystem);
   };
 
   const setRotation = (nextAngleUnits: number) => {
     const clampedAngleUnits = Math.min(MAX_ROTATION_UNITS, Math.max(MIN_ROTATION_UNITS, nextAngleUnits));
+    const nextSystem = clampSystemToScene(rotateTo(system, clampedAngleUnits), params);
     setAngleUnits(clampedAngleUnits);
-    onSystemChange(rotateTo(system, clampedAngleUnits));
+    onSystemChange(nextSystem);
   };
 
   return (
@@ -144,10 +147,6 @@ export function ExploreMode({
             <button type="button" className="tool-button" onClick={() => applySystemChange(flipAxis(system, 2))}>
               <FlipVertical aria-hidden="true" size={18} />
               Flip {system.label2}
-            </button>
-            <button type="button" className="tool-button" onClick={() => applySystemChange(swapCoordinateVariables(system))}>
-              <Shuffle aria-hidden="true" size={18} />
-              Swap variables
             </button>
             <button type="button" className="tool-button" onClick={() => applySystemChange(selectedPreset)}>
               <RotateCcw aria-hidden="true" size={18} />

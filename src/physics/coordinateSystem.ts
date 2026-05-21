@@ -37,19 +37,33 @@ export const ROTATION_UNIT_RADIANS = Math.PI / 12;
 export const MIN_ROTATION_UNITS = -24;
 export const MAX_ROTATION_UNITS = 24;
 
+const axisHandedness = (axis1: Vector2, axis2: Vector2): 1 | -1 => {
+  const cross = axis1.x * axis2.y - axis1.y * axis2.x;
+  return cross >= 0 ? 1 : -1;
+};
+
+const orthogonalAxis2 = (axis1: Vector2, axis2: Vector2): Vector2 => {
+  const perpendicular = perpendicularLeft(axis1);
+  return axisHandedness(axis1, axis2) > 0 ? perpendicular : scale(perpendicular, -1);
+};
+
 export const makeCoordinateSystem = (
   originWorld: Vector2,
   axis1: Vector2,
   axis2: Vector2,
   label1 = 'x',
   label2 = 'y',
-): CoordinateSystem => ({
-  originWorld,
-  axis1: normalize(axis1),
-  axis2: normalize(axis2),
-  label1,
-  label2,
-});
+): CoordinateSystem => {
+  const unitAxis1 = normalize(axis1);
+  const unitAxis2 = normalize(axis2);
+  return {
+    originWorld,
+    axis1: unitAxis1,
+    axis2: orthogonalAxis2(unitAxis1, unitAxis2),
+    label1,
+    label2,
+  };
+};
 
 export const projectWorldPoint = (worldPoint: Vector2, system: CoordinateSystem): Vector2 => {
   const relative = subtract(worldPoint, system.originWorld);
@@ -69,10 +83,12 @@ export const getCoordinateComponents = (
 });
 
 export const rotateCoordinateSystem = (system: CoordinateSystem, radians: number): CoordinateSystem => {
+  const axis1 = normalize(rotate(system.axis1, radians));
+  const axis2 = orthogonalAxis2(axis1, rotate(system.axis2, radians));
   return {
     ...system,
-    axis1: normalize(rotate(system.axis1, radians)),
-    axis2: normalize(rotate(system.axis2, radians)),
+    axis1,
+    axis2,
   };
 };
 
@@ -87,7 +103,7 @@ export const setAxis1Angle = (system: CoordinateSystem, radians: number): Coordi
   return {
     ...system,
     axis1,
-    axis2: perpendicularLeft(axis1),
+    axis2: orthogonalAxis2(axis1, system.axis2),
   };
 };
 
