@@ -10,6 +10,18 @@ const uniqueChoices = (answer: string, choices: string[]): string[] =>
     (choice, index, all) => all.indexOf(choice) === index,
   );
 
+const shuffle = <T>(items: readonly T[], random = Math.random): T[] => {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+};
+
+export const shuffleQuestionChoices = (question: QuizQuestion, random = Math.random): QuizQuestion =>
+  'choices' in question ? { ...question, choices: shuffle(question.choices, random) } : question;
+
 const choiceQuestion = (
   id: string,
   type: ChoiceQuestionType,

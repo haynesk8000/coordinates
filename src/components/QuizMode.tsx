@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, RotateCcw, XCircle } from 'lucide-react';
-import { buildQuestionBank } from '../quiz/questionBank';
+import { buildQuestionBank, shuffleQuestionChoices } from '../quiz/questionBank';
 import { emptyScore, updateScore, type QuizScore } from '../quiz/scoring';
 import type { QuizQuestion } from '../quiz/questionTypes';
 import type { ProjectileParameters } from '../physics/projectile';
@@ -138,7 +138,7 @@ export function QuizMode({ params, onReviewExplain }: Props) {
   const questions = useMemo(() => {
     const selected = selectQuizQuestions(questionPool, 10, previousQuizSignature.current);
     previousQuizSignature.current = selected.map((selectedQuestion) => selectedQuestion.id).join('|');
-    return selected;
+    return selected.map((selectedQuestion) => shuffleQuestionChoices(selectedQuestion));
   }, [questionPool, quizVersion]);
   const [index, setIndex] = useState(0);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
