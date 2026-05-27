@@ -1,0 +1,25 @@
+Update the "Explain" section of the application.
+
+There are currently 4 Worked Examples. Each example contains:
+1. An image
+2. A descriptive paragraph below the image
+3. A key-information display panel on the right side containing values such as:
+   - Initial coordinates
+   - Velocity components
+   - Other important parameters
+
+Requirements:
+- Do NOT modify the key-information display panels in any way.
+- Only update the descriptive text located below each image.
+
+New description behavior:
+- Each Worked Example should have a unique description.
+- The description should explain:
+  - The physical situation shown in the image
+  - What is happening in the scenario
+  - How the displayed key information relates to the situation
+- The descriptions should reference the specific values or concepts shown in the corresponding key-information panel where appropriate.
+- The descriptions should be clear, instructional, and tailored to the individual example.
+
+Current issue:
+- All four Worked Example descriptions are currently identical. Replace them with example-specific descriptions.

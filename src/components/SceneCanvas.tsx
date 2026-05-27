@@ -29,6 +29,7 @@ type Props = {
   params: ProjectileParameters;
   system: CoordinateSystem;
   time: number;
+  caption?: string;
   onSystemChange?: (system: CoordinateSystem) => void;
   onRotationUnitsChange?: (units: number) => void;
   rotationUnits?: number;
@@ -50,6 +51,7 @@ export function SceneCanvas({
   params,
   system,
   time,
+  caption,
   onSystemChange,
   onRotationUnitsChange,
   rotationUnits,
@@ -315,8 +317,8 @@ export function SceneCanvas({
         </g>
       </svg>
       <figcaption>
-        Same motion, different coordinate description. The projectile starts at ({system.label1}0, {system.label2}0)
-        in the selected coordinates; only the description changes when the axes move.
+        {caption ??
+          `Same motion, different coordinate description. The projectile starts at (${system.label1}0, ${system.label2}0) in the selected coordinates; only the description changes when the axes move.`}
       </figcaption>
     </figure>
   );

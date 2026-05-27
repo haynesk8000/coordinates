@@ -1,0 +1,27 @@
+```text
+Replace the current preset-location snapping behavior for the coordinate system origin.
+
+New behavior:
+- Instead of snapping the origin to preset points, make the origin snap to the nearest point on specific invisible guide lines whenever the origin is within 5 pixels of one of those lines.
+- These guide lines should not be rendered or visible to the user.
+
+Snap lines:
+
+Vertical snap lines:
+- x0 = 0
+- x0 = d1
+- x0 = d1 + d2
+
+Horizontal snap lines:
+- y0 = 0
+- y0 = h
+- y0 = H
+
+Snapping rules:
+- If the origin is within 5 pixels of any snap line, automatically align the corresponding coordinate value to that line.
+- Snapping should occur independently for the x and y axes.
+  - Example: x0 may snap to d1 while y0 remains unchanged.
+
+Equation display update:
+- When x0 = 0 or y0 = 0, explicitly display the zero value in the generated equations instead of omitting it or simplifying it away.
+```

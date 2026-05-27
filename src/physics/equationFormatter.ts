@@ -1,7 +1,7 @@
 import type { CoordinateSystem } from './coordinateSystem';
 import { getCoordinateComponents } from './coordinateSystem';
 import type { ProjectileParameters } from './projectile';
-import { almostEqual, almostVector, type Vector2 } from './vectors';
+import { almostEqual, type Vector2 } from './vectors';
 
 type TimePower = 0 | 1 | 2;
 
@@ -80,6 +80,7 @@ const addTerm = (terms: SymbolicTerm[], term: SymbolicTerm): void => {
 };
 
 const positionComponentTerms = (label: string, initialPositionValue: number): SymbolicTerm[] => {
+  if (almostEqual(initialPositionValue, 0, EPSILON)) return [];
   const sign = initialPositionValue < -EPSILON ? -1 : 1;
   return [{ coefficient: sign, symbol: `${label}_0`, timePower: 0 }];
 };
@@ -90,42 +91,48 @@ const multiplyTerms = (
   trig?: SymbolicTerm['trig'],
 ): SymbolicTerm[] => terms.map((term) => ({ ...term, coefficient: term.coefficient * coefficient, trig }));
 
-const presetRelativePositionTerms = (
+type RelativePositionTerms = {
+  x: SymbolicTerm[] | null;
+  y: SymbolicTerm[] | null;
+};
+
+const snappedRelativePositionTerms = (
   params: ProjectileParameters,
   system: CoordinateSystem,
-): { x: SymbolicTerm[]; y: SymbolicTerm[] } | null => {
+): RelativePositionTerms => {
   const origin = system.originWorld;
+  let x: SymbolicTerm[] | null = null;
+  let y: SymbolicTerm[] | null = null;
 
-  if (almostVector(origin, { x: 0, y: params.H }, EPSILON)) {
-    return { x: [], y: [] };
+  if (almostEqual(origin.x, 0, EPSILON)) {
+    x = [];
+  } else if (almostEqual(origin.x, params.d1, EPSILON)) {
+    x = [{ coefficient: -1, symbol: 'd_1', timePower: 0 }];
+  } else if (almostEqual(origin.x, params.d1 + params.d2, EPSILON)) {
+    x = [
+      { coefficient: -1, symbol: 'd_1', timePower: 0 },
+      { coefficient: -1, symbol: 'd_2', timePower: 0 },
+    ];
   }
 
-  if (almostVector(origin, { x: 0, y: 0 }, EPSILON)) {
-    return { x: [], y: [{ coefficient: 1, symbol: 'H', timePower: 0 }] };
+  if (almostEqual(origin.y, params.H, EPSILON)) {
+    y = [];
+  } else if (almostEqual(origin.y, 0, EPSILON)) {
+    y = [{ coefficient: 1, symbol: 'H', timePower: 0 }];
+  } else if (almostEqual(origin.y, params.h, EPSILON)) {
+    y = [
+      { coefficient: 1, symbol: 'H', timePower: 0 },
+      { coefficient: -1, symbol: 'h', timePower: 0 },
+    ];
   }
 
-  if (almostVector(origin, { x: params.d1, y: params.h }, EPSILON)) {
-    return {
-      x: [{ coefficient: -1, symbol: 'd_1', timePower: 0 }],
-      y: [
-        { coefficient: 1, symbol: 'H', timePower: 0 },
-        { coefficient: -1, symbol: 'h', timePower: 0 },
-      ],
-    };
-  }
-
-  if (almostVector(origin, { x: params.d1 + params.d2, y: 0 }, EPSILON)) {
-    return {
-      x: [
-        { coefficient: -1, symbol: 'd_1', timePower: 0 },
-        { coefficient: -1, symbol: 'd_2', timePower: 0 },
-      ],
-      y: [{ coefficient: 1, symbol: 'H', timePower: 0 }],
-    };
-  }
-
-  return null;
+  return { x, y };
 };
+
+const hasCompleteRelativePositionTerms = (relative: RelativePositionTerms): relative is {
+  x: SymbolicTerm[];
+  y: SymbolicTerm[];
+} => relative.x !== null && relative.y !== null;
 
 const symbolicPositionComponentTerms = (
   params: ProjectileParameters,
@@ -135,14 +142,23 @@ const symbolicPositionComponentTerms = (
   label: string,
   initialPositionValue: number,
 ): SymbolicTerm[] => {
-  const relative = presetRelativePositionTerms(params, system);
-  if (!relative) return positionComponentTerms(label, initialPositionValue);
-
   const axisX = snap(axis.x);
   const axisY = snap(axis.y);
+  const relative = snappedRelativePositionTerms(params, system);
+
   if (isCardinal(axis)) {
-    return [...multiplyTerms(relative.x, axisX), ...multiplyTerms(relative.y, axisY)];
+    if (axisX !== 0) {
+      return relative.x === null ? positionComponentTerms(label, initialPositionValue) : multiplyTerms(relative.x, axisX);
+    }
+
+    if (axisY !== 0) {
+      return relative.y === null ? positionComponentTerms(label, initialPositionValue) : multiplyTerms(relative.y, axisY);
+    }
+
+    return positionComponentTerms(label, initialPositionValue);
   }
+
+  if (!hasCompleteRelativePositionTerms(relative)) return positionComponentTerms(label, initialPositionValue);
 
   const cross = system.axis1.x * system.axis2.y - system.axis1.y * system.axis2.x;
   if (axisIndex === 1) {
@@ -231,6 +247,21 @@ const formatTerms = (terms: SymbolicTerm[], mode: 'latex' | 'text', theta: strin
   return cleaned.map((term, index) => formatSingleTerm(term, mode, index === 0, theta)).join('');
 };
 
+const formatEquationTerms = (
+  terms: SymbolicTerm[],
+  mode: 'latex' | 'text',
+  theta: string,
+  showInitialZero: boolean,
+): string => {
+  const cleaned = cleanTerms(terms);
+  if (cleaned.length === 0) return '0';
+  if (!showInitialZero) {
+    return cleaned.map((term, index) => formatSingleTerm(term, mode, index === 0, theta)).join('');
+  }
+
+  return `0${cleaned.map((term) => formatSingleTerm(term, mode, false, theta)).join('')}`;
+};
+
 const componentText = (symbolic: SymbolicTerm[], theta: string): string => formatTerms(symbolic, 'text', theta);
 
 const buildEquationTerms = (
@@ -280,8 +311,9 @@ const axisEquation = (
   const generalLatex = `${label}(t) = ${label}_0 + v_{${label},0} t + \\frac{1}{2} a_${label} t^2`;
   const latexTheta = formatTheta(system, 'latex');
   const textTheta = formatTheta(system, 'text');
-  const rightSideLatex = formatTerms(equationTerms, 'latex', latexTheta);
-  const rightSideText = formatTerms(equationTerms, 'text', textTheta);
+  const showInitialZero = cleanTerms(position).length === 0 && almostEqual(componentValues.position, 0, EPSILON);
+  const rightSideLatex = formatEquationTerms(equationTerms, 'latex', latexTheta, showInitialZero);
+  const rightSideText = formatEquationTerms(equationTerms, 'text', textTheta, showInitialZero);
 
   return {
     label,

@@ -1,0 +1,10 @@
+Update the app so that when the origin snaps to one of the invisible snap lines, the equations update exactly the same way they currently update when the origin snaps to a preset location.
+
+Required behavior:
+- Line snapping should trigger the same symbolic equation update logic as preset snapping.
+- If x0 snaps to 0, d1, or d1 + d2, use the appropriate symbolic value in the equations.
+- If y0 snaps to 0, h, or H, use the appropriate symbolic value in the equations.
+- When x0 = 0 or y0 = 0, explicitly show the zero in the equations.
+- Do not display the snap lines visually.
+
+After implementing, verify that snapping to each vertical and horizontal line updates the equations correctly.

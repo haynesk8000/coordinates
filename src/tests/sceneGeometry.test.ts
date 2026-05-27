@@ -42,15 +42,41 @@ describe('scene geometry', () => {
     }
   });
 
-  it('snaps the origin to a preset location within 5 screen pixels', () => {
+  it('snaps the origin x coordinate to an invisible vertical guide line within 5 screen pixels', () => {
     const bounds = createSceneBounds(defaultParameters);
-    const groundScreen = worldToSceneScreen(vector(0, 0), bounds);
-    const nearGround = sceneScreenToWorld(vector(groundScreen.x + 4, groundScreen.y), bounds);
-    const system = makeCoordinateSystem(nearGround, vector(1, 0), vector(0, 1));
+    const freeY = defaultParameters.h + 2;
+    const guideScreen = worldToSceneScreen(vector(defaultParameters.d1, freeY), bounds);
+    const nearGuide = sceneScreenToWorld(vector(guideScreen.x + 4, guideScreen.y), bounds);
+    const system = makeCoordinateSystem(nearGuide, vector(1, 0), vector(0, 1));
 
     const snapped = clampSystemToScene(system, defaultParameters);
 
-    expect(snapped.originWorld).toEqual(vector(0, 0));
+    expect(snapped.originWorld.x).toBe(defaultParameters.d1);
+    expect(snapped.originWorld.y).toBeCloseTo(nearGuide.y);
+  });
+
+  it('snaps the origin y coordinate to an invisible horizontal guide line within 5 screen pixels', () => {
+    const bounds = createSceneBounds(defaultParameters);
+    const freeX = 2;
+    const guideScreen = worldToSceneScreen(vector(freeX, defaultParameters.H), bounds);
+    const nearGuide = sceneScreenToWorld(vector(guideScreen.x, guideScreen.y + 4), bounds);
+    const system = makeCoordinateSystem(nearGuide, vector(1, 0), vector(0, 1));
+
+    const snapped = clampSystemToScene(system, defaultParameters);
+
+    expect(snapped.originWorld.x).toBeCloseTo(nearGuide.x);
+    expect(snapped.originWorld.y).toBe(defaultParameters.H);
+  });
+
+  it('leaves coordinates unsnapped when guide lines are farther than 5 screen pixels away', () => {
+    const bounds = createSceneBounds(defaultParameters);
+    const freePoint = vector(3, 11);
+    const system = makeCoordinateSystem(freePoint, vector(1, 0), vector(0, 1));
+
+    const snapped = clampSystemToScene(system, defaultParameters);
+
+    expect(snapped.originWorld.x).toBeCloseTo(freePoint.x);
+    expect(snapped.originWorld.y).toBeCloseTo(freePoint.y);
   });
 
   it('draws both coordinate axes at the same screen length', () => {

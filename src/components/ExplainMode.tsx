@@ -20,11 +20,21 @@ const directionText = (axis: { x: number; y: number }) => {
   return parts.join(' and ') || 'nearly zero';
 };
 
-function WorkedExample({ params, system, title }: { params: ProjectileParameters; system: CoordinateSystem; title: string }) {
+function WorkedExample({
+  params,
+  system,
+  title,
+  description,
+}: {
+  params: ProjectileParameters;
+  system: CoordinateSystem;
+  title: string;
+  description: string;
+}) {
   const equations = formatEquationSet(params, system);
   return (
     <article className="example-card">
-      <SceneCanvas params={params} system={system} time={0.9} small />
+      <SceneCanvas params={params} system={system} time={0.9} caption={description} small />
       <div>
         <h3>{title}</h3>
         <dl className="mini-facts">
@@ -62,7 +72,28 @@ export function ExplainMode({ params, system }: Props) {
   const presets = createPresets(params);
   const current = formatEquationSet(params, system);
   const defaultSystem = presets[0];
-  const examples = [presets[0], presets[3], presets[4], presets[9]];
+  const examples = [
+    {
+      system: presets[0],
+      description:
+        'The origin is at the launch point on top of the cliff, with x pointing right and y pointing up. The key information starts at (0, 0), gives the horizontal launch as (v0, 0), and shows gravity as negative in the upward y direction.',
+    },
+    {
+      system: presets[3],
+      description:
+        'The projectile is still launched from the cliff top, but the vertical axis now points downward. The initial coordinates remain (0, 0), while the key information changes gravity to +g because positive y points with the downward acceleration.',
+    },
+    {
+      system: presets[4],
+      description:
+        'Here the origin has moved to the ground below the cliff while the axes keep x right and y up. The key information shows the launch point begins H meters above the origin, so the vertical equation starts with H before gravity subtracts from it.',
+    },
+    {
+      system: presets[9],
+      description:
+        'In this swapped-variable system, the coordinate named x is vertical and the coordinate named y is horizontal. The key information shows initial position (H, 0), puts the launch velocity in y as v0, and puts the gravity component in x as -g.',
+    },
+  ];
 
   return (
     <div className="explain-stack" id="explain-review">
@@ -134,11 +165,12 @@ export function ExplainMode({ params, system }: Props) {
           <h2>Worked Examples</h2>
         </div>
         <div className="examples-grid">
-          {examples.map((example) => (
+          {examples.map(({ system: example, description }) => (
             <WorkedExample
               key={example.id}
               params={params}
               system={example}
+              description={description}
               title={(example.name ?? 'Coordinate example').replace(/^\d+\.\s*/, '')}
             />
           ))}

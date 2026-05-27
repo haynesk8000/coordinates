@@ -16,7 +16,7 @@ export const SCENE_SCREEN_WIDTH = 860;
 export const SCENE_DRAWING_HEIGHT = 470;
 export const SCENE_SCREEN_HEIGHT = SCENE_DRAWING_HEIGHT + 20;
 export const INTERACTIVE_EDGE_INSET_PX = 30;
-export const PRESET_SNAP_DISTANCE_PX = 5;
+export const GUIDE_LINE_SNAP_DISTANCE_PX = 5;
 
 const sideMargin = 12;
 const belowGroundMargin = 10;
@@ -42,33 +42,60 @@ export const createSceneBounds = (params: ProjectileParameters): SceneBounds => 
   return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
 };
 
-export const presetOriginLocations = (params: ProjectileParameters): Vector2[] => [
-  vector(0, params.H),
-  vector(0, 0),
-  vector(params.d1, params.h),
-  vector(params.d1 + params.d2, 0),
-];
-
-export const snapOriginToPresetLocation = (
+const nearestGuideLineValue = (
   originWorld: Vector2,
-  params: ProjectileParameters,
+  originScreen: Vector2,
   bounds: SceneBounds,
-  thresholdPx = PRESET_SNAP_DISTANCE_PX,
-): Vector2 => {
-  const originScreen = worldToSceneScreen(originWorld, bounds);
-  let nearestOrigin = originWorld;
+  guideValues: number[],
+  axis: 'x' | 'y',
+  thresholdPx: number,
+): number => {
+  const currentValue = axis === 'x' ? originWorld.x : originWorld.y;
+  let nearestValue = currentValue;
   let nearestDistance = Number.POSITIVE_INFINITY;
 
-  for (const presetOrigin of presetOriginLocations(params)) {
-    const presetScreen = worldToSceneScreen(presetOrigin, bounds);
-    const distance = Math.hypot(originScreen.x - presetScreen.x, originScreen.y - presetScreen.y);
+  for (const guideValue of guideValues) {
+    const guidePoint =
+      axis === 'x' ? vector(guideValue, originWorld.y) : vector(originWorld.x, guideValue);
+    const guideScreen = worldToSceneScreen(guidePoint, bounds);
+    const distance = axis === 'x'
+      ? Math.abs(originScreen.x - guideScreen.x)
+      : Math.abs(originScreen.y - guideScreen.y);
+
     if (distance < nearestDistance) {
       nearestDistance = distance;
-      nearestOrigin = presetOrigin;
+      nearestValue = guideValue;
     }
   }
 
-  return nearestDistance <= thresholdPx ? nearestOrigin : originWorld;
+  return nearestDistance <= thresholdPx ? nearestValue : currentValue;
+};
+
+export const snapOriginToGuideLines = (
+  originWorld: Vector2,
+  params: ProjectileParameters,
+  bounds: SceneBounds,
+  thresholdPx = GUIDE_LINE_SNAP_DISTANCE_PX,
+): Vector2 => {
+  const originScreen = worldToSceneScreen(originWorld, bounds);
+  const snapX = nearestGuideLineValue(
+    originWorld,
+    originScreen,
+    bounds,
+    [0, params.d1, params.d1 + params.d2],
+    'x',
+    thresholdPx,
+  );
+  const snapY = nearestGuideLineValue(
+    originWorld,
+    originScreen,
+    bounds,
+    [0, params.h, params.H],
+    'y',
+    thresholdPx,
+  );
+
+  return vector(snapX, snapY);
 };
 
 export const clampOriginToScene = (
@@ -108,7 +135,7 @@ export const clampSystemToScene = (
   const clampedOrigin = clampOriginToScene(system.originWorld, system, bounds, axisLength);
   return {
     ...system,
-    originWorld: snapOriginToPresetLocation(clampedOrigin, params, bounds),
+    originWorld: snapOriginToGuideLines(clampedOrigin, params, bounds),
   };
 };
 
