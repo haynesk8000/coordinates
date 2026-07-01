@@ -1,0 +1,14 @@
+Make the following changes to the measurement annotations in the visualization:
+
+1. Leave the existing **d₁** and **d₂** measurements unchanged. They should continue to be represented by **horizontal measurement lines**.
+
+2. Remove the current **h** and **H** text labels.
+
+3. Replace the removed **h** and **H** labels with **vertical measurement lines**:
+
+   * **h** should be displayed as a labeled vertical measurement line representing the appropriate vertical distance.
+   * **H** should be displayed as a labeled vertical measurement line representing the appropriate vertical distance.
+
+4. Position the vertical measurement lines so they clearly indicate the distances they represent without overlapping the projectile, trajectory, or other measurement annotations.
+
+5. Style the new vertical measurement lines and labels to match the appearance of the existing measurement graphics (such as **d₁**, **d₂**, **x₀**, and **y₀**) for a consistent user interface.

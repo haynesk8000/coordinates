@@ -226,12 +226,19 @@ export function SceneCanvas({
   const impact = toScreen(worldPositionAtTime(params, landingTime(params)));
   const d1Y = groundRight.y + 22;
   const d2Y = groundRight.y + 48;
+  const guideInset = 34;
+  const dimensionTickSize = 7;
+  const cliffHeightDimensionX = Math.max(guideInset, cliffBase.x - 28);
+  const cliffHeightLabelAnchor = cliffHeightDimensionX - 16 > guideInset ? 'end' : 'start';
+  const cliffHeightLabelX = cliffHeightLabelAnchor === 'end' ? cliffHeightDimensionX - 10 : cliffHeightDimensionX + 10;
+  const wallHeightDimensionX = Math.min(screenWidth - guideInset, wallBase.x + 24);
+  const wallHeightLabelAnchor = wallHeightDimensionX + 32 < screenWidth - guideInset ? 'start' : 'end';
+  const wallHeightLabelX = wallHeightLabelAnchor === 'start' ? wallHeightDimensionX + 10 : wallHeightDimensionX - 10;
   const oneMeterScreen = toScreen(vector(1, 0));
   const zeroMeterScreen = toScreen(vector(0, 0));
   const pixelsPerMeter = Math.hypot(oneMeterScreen.x - zeroMeterScreen.x, oneMeterScreen.y - zeroMeterScreen.y);
   const x0Length = Math.abs(initialCoordinates.x) * pixelsPerMeter;
   const y0Length = Math.abs(initialCoordinates.y) * pixelsPerMeter;
-  const guideInset = 34;
   const xGuideY = 28;
   const yGuideX = screenWidth - 34;
   const xDirection = Math.sign(originScreen.x - initialScreen.x) || Math.sign(-initialCoordinates.x);
@@ -288,10 +295,39 @@ export function SceneCanvas({
           points={`${groundLeft.x},${groundLeft.y} ${cliffBase.x},${cliffBase.y} ${cliffTop.x},${cliffTop.y} ${groundLeft.x},${cliffTop.y}`}
           className="cliff"
         />
-        <line {...line(vector(0, 0), vector(0, params.H))} className="measure-line" />
-        <text x={cliffBase.x + 10} y={(cliffBase.y + cliffTop.y) / 2} className="scene-label">
-          H
-        </text>
+        <g className="height-dimension" data-testid="height-dimension-H" aria-label="H vertical measurement">
+          <title>H vertical measurement</title>
+          <line
+            x1={cliffHeightDimensionX}
+            y1={cliffBase.y}
+            x2={cliffHeightDimensionX}
+            y2={cliffTop.y}
+            className="measure-line"
+          />
+          <line
+            x1={cliffHeightDimensionX - dimensionTickSize}
+            y1={cliffBase.y}
+            x2={cliffHeightDimensionX + dimensionTickSize}
+            y2={cliffBase.y}
+            className="dimension-tick"
+          />
+          <line
+            x1={cliffHeightDimensionX - dimensionTickSize}
+            y1={cliffTop.y}
+            x2={cliffHeightDimensionX + dimensionTickSize}
+            y2={cliffTop.y}
+            className="dimension-tick"
+          />
+          <text
+            x={cliffHeightLabelX}
+            y={(cliffBase.y + cliffTop.y) / 2}
+            className="scene-label text-halo"
+            textAnchor={cliffHeightLabelAnchor}
+            dominantBaseline="middle"
+          >
+            H
+          </text>
+        </g>
         <rect
           x={wallBase.x - 5}
           y={wallTop.y}
@@ -300,9 +336,39 @@ export function SceneCanvas({
           rx="2"
           className="wall"
         />
-        <text x={wallBase.x + 10} y={(wallBase.y + wallTop.y) / 2 + 5} className="scene-label">
-          h
-        </text>
+        <g className="height-dimension" data-testid="height-dimension-h" aria-label="h vertical measurement">
+          <title>h vertical measurement</title>
+          <line
+            x1={wallHeightDimensionX}
+            y1={wallBase.y}
+            x2={wallHeightDimensionX}
+            y2={wallTop.y}
+            className="measure-line"
+          />
+          <line
+            x1={wallHeightDimensionX - dimensionTickSize}
+            y1={wallBase.y}
+            x2={wallHeightDimensionX + dimensionTickSize}
+            y2={wallBase.y}
+            className="dimension-tick"
+          />
+          <line
+            x1={wallHeightDimensionX - dimensionTickSize}
+            y1={wallTop.y}
+            x2={wallHeightDimensionX + dimensionTickSize}
+            y2={wallTop.y}
+            className="dimension-tick"
+          />
+          <text
+            x={wallHeightLabelX}
+            y={(wallBase.y + wallTop.y) / 2}
+            className="scene-label text-halo"
+            textAnchor={wallHeightLabelAnchor}
+            dominantBaseline="middle"
+          >
+            h
+          </text>
+        </g>
         <line x1={cliffBase.x} y1={d1Y} x2={wallBase.x} y2={d1Y} className="dimension" />
         <text x={(cliffBase.x + wallBase.x) / 2 - 8} y={d1Y + 17} className="scene-label">
           d1

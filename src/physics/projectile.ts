@@ -36,6 +36,12 @@ export const initialVelocityWorld = (params: ProjectileParameters): Vector2 => v
 
 export const accelerationWorld = (params: ProjectileParameters): Vector2 => vector(0, -params.g);
 
+export const worldVelocityAtTime = (params: ProjectileParameters, time: number): Vector2 => {
+  const v0 = initialVelocityWorld(params);
+  const a = accelerationWorld(params);
+  return add(v0, scale(a, time));
+};
+
 export const worldPositionAtTime = (params: ProjectileParameters, time: number): Vector2 => {
   const r0 = initialPositionWorld(params);
   const v = initialVelocityWorld(params);

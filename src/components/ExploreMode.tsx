@@ -16,6 +16,7 @@ import { SceneCanvas } from './SceneCanvas';
 import { EquationPanel } from './EquationPanel';
 import { ComponentBreakdown } from './ComponentBreakdown';
 import { TimeSlider } from './TimeSlider';
+import { VelocityEquationsPanel } from './VelocityEquationsPanel';
 
 type Props = {
   params: ProjectileParameters;
@@ -166,7 +167,8 @@ export function ExploreMode({
       </div>
       <aside className="side-column">
         <EquationPanel params={params} system={system} />
-        <ComponentBreakdown params={params} system={system} />
+        <VelocityEquationsPanel time={time} />
+        <ComponentBreakdown params={params} system={system} time={time} />
         <section className="panel reason-panel">
           <h2>What Changed?</h2>
           <p>

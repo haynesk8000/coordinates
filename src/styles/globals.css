@@ -265,6 +265,12 @@ h3 {
   stroke-dasharray: 5 4;
 }
 
+.dimension-tick {
+  stroke: #777777;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
 .initial-guide-line {
   stroke: #111111;
   stroke-width: 2.4;
