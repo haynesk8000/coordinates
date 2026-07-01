@@ -98,6 +98,34 @@ test('velocity equations and current velocity update with time', async ({ page }
   await expect(page.getByTestId('breakdown-current-velocity-axis2')).toHaveAttribute('aria-label', 'v_y = v_y0 - g(1)');
 });
 
+test('projectile vectors show velocity components and fixed gravity reference', async ({ page }) => {
+  await page.goto('/');
+  const vxVector = page.getByTestId('projectile-vx-vector');
+  const vyVector = page.getByTestId('projectile-vy-vector');
+  const gravityReference = page.getByTestId('gravity-reference-vector');
+
+  const initialVx = await lineMetrics(vxVector);
+  const initialGravity = await lineMetrics(gravityReference);
+  expect(initialVx.y1).toBeCloseTo(initialVx.y2);
+  expect(initialVx.x2).toBeGreaterThan(initialVx.x1);
+  await expect(vyVector).toHaveCount(0);
+  expect(initialGravity.x1).toBeCloseTo(initialGravity.x2);
+  expect(initialGravity.y2).toBeGreaterThan(initialGravity.y1);
+
+  await page.getByLabel('Projectile time').fill('1');
+  await expect(vyVector).toHaveCount(1);
+  const movedVx = await lineMetrics(vxVector);
+  const movedVy = await lineMetrics(vyVector);
+  const movedGravity = await lineMetrics(gravityReference);
+
+  expect(movedVx.length).toBeCloseTo(initialVx.length);
+  expect(movedVx.y1).toBeCloseTo(movedVx.y2);
+  expect(movedVy.x1).toBeCloseTo(movedVy.x2);
+  expect(movedVy.y2).toBeGreaterThan(movedVy.y1);
+  expect(movedGravity).toEqual(initialGravity);
+  await expect(page.locator('.vector-label').filter({ hasText: 'v0' })).toHaveCount(0);
+});
+
 test('dragging either axis rotates with the same snapped units as the slider', async ({ page }) => {
   await page.goto('/');
   const slider = page.getByLabel('Rotate coordinate axes');

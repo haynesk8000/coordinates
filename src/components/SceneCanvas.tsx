@@ -7,15 +7,14 @@ import {
   type CoordinateSystem,
 } from '../physics/coordinateSystem';
 import {
-  accelerationWorld,
   initialPositionWorld,
-  initialVelocityWorld,
   landingTime,
   trajectorySamples,
+  worldVelocityAtTime,
   worldPositionAtTime,
   type ProjectileParameters,
 } from '../physics/projectile';
-import { add, magnitude, scale, subtract, type Vector2, vector } from '../physics/vectors';
+import { add, almostEqual, magnitude, scale, subtract, type Vector2, vector } from '../physics/vectors';
 import {
   clampSystemToScene,
   createSceneBounds,
@@ -94,11 +93,10 @@ export function SceneCanvas({
   const [dragging, setDragging] = useState<DragTarget>(null);
   const bounds = useMemo(() => createSceneBounds(params), [params]);
   const projectile = worldPositionAtTime(params, time);
+  const currentVelocity = worldVelocityAtTime(params, time);
   const initialPosition = initialPositionWorld(params);
   const initialCoordinates = getCoordinateComponents(params, system).position0;
   const path = trajectorySamples(params);
-  const velocity = initialVelocityWorld(params);
-  const acceleration = accelerationWorld(params);
   const axisLength = SCENE_AXIS_LENGTH;
 
   useEffect(() => {
@@ -211,8 +209,10 @@ export function SceneCanvas({
   const axis2EndScreen = screenAxisEndpoint(system.originWorld, system.axis2, bounds, axisLength);
   const axis1End = sceneScreenToWorld(axis1EndScreen, bounds);
   const axis2End = sceneScreenToWorld(axis2EndScreen, bounds);
-  const velocityEnd = add(projectile, scale(velocity, 0.42));
-  const accelerationEnd = add(projectile, scale(acceleration, 0.5));
+  const velocityVectorScale = 0.42;
+  const horizontalVelocityEnd = add(projectile, scale(vector(params.v0, 0), velocityVectorScale));
+  const verticalVelocityEnd = add(projectile, scale(vector(0, currentVelocity.y), velocityVectorScale));
+  const showVerticalVelocity = !almostEqual(currentVelocity.y, 0, 1e-8);
   const positionLine = line(system.originWorld, projectile);
   const wallBase = toScreen(vector(params.d1, 0));
   const wallTop = toScreen(vector(params.d1, params.h));
@@ -262,6 +262,9 @@ export function SceneCanvas({
   const initialLabel1 = `${system.label1}0`;
   const initialLabel2 = `${system.label2}0`;
   const initialCoordinateGuideLabel = `Initial coordinate guides for ${initialLabel1} and ${initialLabel2}`;
+  const gravityReferenceX = 62;
+  const gravityReferenceStartY = 106;
+  const gravityReferenceEndY = 158;
 
   return (
     <figure className={small ? 'scene small-scene' : 'scene'}>
@@ -421,12 +424,42 @@ export function SceneCanvas({
           </g>
         ) : null}
         <line {...positionLine} className="position-vector" markerEnd="url(#arrow-purple)" />
-        <line {...line(projectile, velocityEnd)} className="velocity-vector" markerEnd="url(#arrow-green)" />
-        <line {...line(projectile, accelerationEnd)} className="accel-vector" markerEnd="url(#arrow-red)" />
-        <text x={toScreen(velocityEnd).x + 6} y={toScreen(velocityEnd).y - 4} className="vector-label velocity">
-          v0
+        <line
+          {...line(projectile, horizontalVelocityEnd)}
+          className="velocity-vector"
+          markerEnd="url(#arrow-green)"
+          data-testid="projectile-vx-vector"
+        />
+        {showVerticalVelocity ? (
+          <>
+            <line
+              {...line(projectile, verticalVelocityEnd)}
+              className="velocity-vector"
+              markerEnd="url(#arrow-green)"
+              data-testid="projectile-vy-vector"
+            />
+            <text
+              x={toScreen(verticalVelocityEnd).x + 6}
+              y={toScreen(verticalVelocityEnd).y + (currentVelocity.y < 0 ? 16 : -6)}
+              className="vector-label velocity"
+            >
+              v<tspan baselineShift="sub" fontSize="12">y</tspan>
+            </text>
+          </>
+        ) : null}
+        <text x={toScreen(horizontalVelocityEnd).x + 6} y={toScreen(horizontalVelocityEnd).y - 4} className="vector-label velocity">
+          v<tspan baselineShift="sub" fontSize="12">x</tspan>
         </text>
-        <text x={toScreen(accelerationEnd).x + 6} y={toScreen(accelerationEnd).y + 16} className="vector-label accel">
+        <line
+          x1={gravityReferenceX}
+          y1={gravityReferenceStartY}
+          x2={gravityReferenceX}
+          y2={gravityReferenceEndY}
+          className="accel-vector gravity-reference-vector"
+          markerEnd="url(#arrow-red)"
+          data-testid="gravity-reference-vector"
+        />
+        <text x={gravityReferenceX + 9} y={gravityReferenceEndY + 4} className="vector-label accel">
           g
         </text>
 
