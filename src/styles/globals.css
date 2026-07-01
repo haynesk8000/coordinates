@@ -265,6 +265,31 @@ h3 {
   stroke-dasharray: 5 4;
 }
 
+.initial-guide-line {
+  stroke: #111111;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.initial-guide-tick {
+  stroke: #111111;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.initial-guide-label {
+  fill: #111111;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.text-halo {
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
 .position-vector {
   stroke: var(--purple);
   stroke-width: 2.5;

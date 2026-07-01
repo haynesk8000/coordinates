@@ -99,6 +99,7 @@ export function ExploreMode({
           onRotationUnitsChange={setRotation}
           rotationUnits={angleUnits}
           interactive
+          showInitialCoordinateGuides
         />
         <TimeSlider params={params} time={time} onChange={onTimeChange} />
         <div className="panel" aria-labelledby="coordinate-controls">

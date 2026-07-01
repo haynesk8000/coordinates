@@ -3,10 +3,12 @@ import {
   MAX_ROTATION_UNITS,
   MIN_ROTATION_UNITS,
   ROTATION_UNIT_RADIANS,
+  getCoordinateComponents,
   type CoordinateSystem,
 } from '../physics/coordinateSystem';
 import {
   accelerationWorld,
+  initialPositionWorld,
   initialVelocityWorld,
   landingTime,
   trajectorySamples,
@@ -35,6 +37,7 @@ type Props = {
   rotationUnits?: number;
   interactive?: boolean;
   small?: boolean;
+  showInitialCoordinateGuides?: boolean;
 };
 
 const screenWidth = SCENE_SCREEN_WIDTH;
@@ -47,6 +50,34 @@ type DragTarget = 'origin' | 'axis1' | 'axis2' | null;
 
 const format = (value: number) => value.toFixed(1).replace(/\.0$/, '');
 
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const guideLineFromAnchor = (
+  anchor: number,
+  length: number,
+  direction: number,
+  min: number,
+  max: number,
+): { start: number; end: number } => {
+  const safeDirection = direction === 0 ? 1 : direction;
+  let start = anchor;
+  let end = anchor + safeDirection * length;
+
+  if (Math.min(start, end) < min) {
+    const shift = min - Math.min(start, end);
+    start += shift;
+    end += shift;
+  }
+
+  if (Math.max(start, end) > max) {
+    const shift = max - Math.max(start, end);
+    start += shift;
+    end += shift;
+  }
+
+  return { start, end };
+};
+
 export function SceneCanvas({
   params,
   system,
@@ -57,11 +88,14 @@ export function SceneCanvas({
   rotationUnits,
   interactive = false,
   small = false,
+  showInitialCoordinateGuides = false,
 }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [dragging, setDragging] = useState<DragTarget>(null);
   const bounds = useMemo(() => createSceneBounds(params), [params]);
   const projectile = worldPositionAtTime(params, time);
+  const initialPosition = initialPositionWorld(params);
+  const initialCoordinates = getCoordinateComponents(params, system).position0;
   const path = trajectorySamples(params);
   const velocity = initialVelocityWorld(params);
   const acceleration = accelerationWorld(params);
@@ -187,10 +221,40 @@ export function SceneCanvas({
   const cliffTop = toScreen(vector(0, params.H));
   const cliffBase = toScreen(vector(0, 0));
   const projectileScreen = toScreen(projectile);
+  const initialScreen = toScreen(initialPosition);
   const originScreen = toScreen(system.originWorld);
   const impact = toScreen(worldPositionAtTime(params, landingTime(params)));
   const d1Y = groundRight.y + 22;
   const d2Y = groundRight.y + 48;
+  const oneMeterScreen = toScreen(vector(1, 0));
+  const zeroMeterScreen = toScreen(vector(0, 0));
+  const pixelsPerMeter = Math.hypot(oneMeterScreen.x - zeroMeterScreen.x, oneMeterScreen.y - zeroMeterScreen.y);
+  const x0Length = Math.abs(initialCoordinates.x) * pixelsPerMeter;
+  const y0Length = Math.abs(initialCoordinates.y) * pixelsPerMeter;
+  const guideInset = 34;
+  const xGuideY = 28;
+  const yGuideX = screenWidth - 34;
+  const xDirection = Math.sign(originScreen.x - initialScreen.x) || Math.sign(-initialCoordinates.x);
+  const yDirection = Math.sign(originScreen.y - initialScreen.y) || Math.sign(-initialCoordinates.y);
+  const xGuide = guideLineFromAnchor(
+    clamp(initialScreen.x, guideInset, screenWidth - guideInset),
+    x0Length,
+    xDirection,
+    guideInset,
+    screenWidth - guideInset,
+  );
+  const yGuide = guideLineFromAnchor(
+    clamp(initialScreen.y, guideInset, screenHeight - guideInset),
+    y0Length,
+    yDirection,
+    guideInset,
+    screenHeight - guideInset,
+  );
+  const xGuideMid = (xGuide.start + xGuide.end) / 2;
+  const yGuideMid = (yGuide.start + yGuide.end) / 2;
+  const initialLabel1 = `${system.label1}0`;
+  const initialLabel2 = `${system.label2}0`;
+  const initialCoordinateGuideLabel = `Initial coordinate guides for ${initialLabel1} and ${initialLabel2}`;
 
   return (
     <figure className={small ? 'scene small-scene' : 'scene'}>
@@ -249,6 +313,47 @@ export function SceneCanvas({
         </text>
 
         <path d={pathD} className="trajectory" />
+        {showInitialCoordinateGuides ? (
+          <g
+            className="initial-coordinate-guides"
+            data-testid="initial-coordinate-guides"
+            aria-label={initialCoordinateGuideLabel}
+          >
+            <title>{initialCoordinateGuideLabel}</title>
+            <line
+              x1={xGuide.start}
+              y1={xGuideY}
+              x2={xGuide.end}
+              y2={xGuideY}
+              className="initial-guide-line"
+              data-testid="initial-guide-axis1"
+            />
+            <line x1={xGuide.start} y1={xGuideY - 7} x2={xGuide.start} y2={xGuideY + 7} className="initial-guide-tick" />
+            <line x1={xGuide.end} y1={xGuideY - 7} x2={xGuide.end} y2={xGuideY + 7} className="initial-guide-tick" />
+            <text x={xGuideMid} y={xGuideY - 10} className="initial-guide-label text-halo" textAnchor="middle">
+              {initialLabel1}
+            </text>
+            <line
+              x1={yGuideX}
+              y1={yGuide.start}
+              x2={yGuideX}
+              y2={yGuide.end}
+              className="initial-guide-line"
+              data-testid="initial-guide-axis2"
+            />
+            <line x1={yGuideX - 7} y1={yGuide.start} x2={yGuideX + 7} y2={yGuide.start} className="initial-guide-tick" />
+            <line x1={yGuideX - 7} y1={yGuide.end} x2={yGuideX + 7} y2={yGuide.end} className="initial-guide-tick" />
+            <text
+              x={yGuideX - 10}
+              y={yGuideMid}
+              className="initial-guide-label text-halo"
+              textAnchor="end"
+              dominantBaseline="middle"
+            >
+              {initialLabel2}
+            </text>
+          </g>
+        ) : null}
         <line {...positionLine} className="position-vector" markerEnd="url(#arrow-purple)" />
         <line {...line(projectile, velocityEnd)} className="velocity-vector" markerEnd="url(#arrow-green)" />
         <line {...line(projectile, accelerationEnd)} className="accel-vector" markerEnd="url(#arrow-red)" />
