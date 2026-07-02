@@ -1,15 +1,15 @@
 import { Activity } from 'lucide-react';
+import type { CoordinateSystem } from '../physics/coordinateSystem';
+import { formatVelocityDisplaySet } from '../physics/equationFormatter';
 import { MathBlock } from './MathBlock';
 
 type Props = {
+  system: CoordinateSystem;
   time: number;
 };
 
-const formatTime = (value: number): string => value.toFixed(2).replace(/\.?0+$/, '') || '0';
-
-export function VelocityEquationsPanel({ time }: Props) {
-  const timeLabel = formatTime(time);
-  const verticalVelocityLabel = `v_y = v_y0 - g(${timeLabel})`;
+export function VelocityEquationsPanel({ system, time }: Props) {
+  const velocity = formatVelocityDisplaySet(system, time);
 
   return (
     <section className="panel equation-panel" aria-labelledby="velocity-equation-heading">
@@ -18,18 +18,18 @@ export function VelocityEquationsPanel({ time }: Props) {
         <h2 id="velocity-equation-heading">Velocity Equations</h2>
       </div>
       <div className="formula-stack live-formulas" aria-live="polite">
-        <p className="formula-label">Horizontal Velocity</p>
+        <p className="formula-label">Along {system.label1}</p>
         <MathBlock
-          expression="v_x = v_{x0}"
+          expression={velocity.axis1.equation.latex}
           block
-          label="v_x = v_x0"
+          label={velocity.axis1.equation.text}
           testId="velocity-equation-x"
         />
-        <p className="formula-label">Vertical Velocity</p>
+        <p className="formula-label">Along {system.label2}</p>
         <MathBlock
-          expression={`v_y = v_{y0} - g\\left(${timeLabel}\\right)`}
+          expression={velocity.axis2.equation.latex}
           block
-          label={verticalVelocityLabel}
+          label={velocity.axis2.equation.text}
           testId="velocity-equation-y"
         />
       </div>

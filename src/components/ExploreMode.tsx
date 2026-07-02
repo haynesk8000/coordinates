@@ -167,7 +167,7 @@ export function ExploreMode({
       </div>
       <aside className="side-column">
         <EquationPanel params={params} system={system} />
-        <VelocityEquationsPanel time={time} />
+        <VelocityEquationsPanel system={system} time={time} />
         <ComponentBreakdown params={params} system={system} time={time} />
         <section className="panel reason-panel">
           <h2>What Changed?</h2>

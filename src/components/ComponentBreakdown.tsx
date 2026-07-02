@@ -1,9 +1,8 @@
 import { TableProperties } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { CoordinateSystem } from '../physics/coordinateSystem';
-import { formatEquationSet } from '../physics/equationFormatter';
-import { worldVelocityAtTime, type ProjectileParameters } from '../physics/projectile';
-import { almostEqual } from '../physics/vectors';
+import { formatEquationSet, formatVelocityDisplaySet } from '../physics/equationFormatter';
+import type { ProjectileParameters } from '../physics/projectile';
 import { MathBlock } from './MathBlock';
 
 type Props = {
@@ -18,32 +17,44 @@ type BreakdownRow = {
   axis2: ReactNode;
 };
 
-const formatTime = (value: number): string => value.toFixed(2).replace(/\.?0+$/, '') || '0';
-
 export function ComponentBreakdown({ params, system, time = 0 }: Props) {
   const equations = formatEquationSet(params, system);
-  const currentWorldVelocity = worldVelocityAtTime(params, time);
-  const timeLabel = formatTime(time);
-  const currentVerticalVelocity = almostEqual(currentWorldVelocity.y, 0, 1e-8) ? (
-    <MathBlock expression="0" label="0" testId="breakdown-current-velocity-axis2" />
-  ) : (
-    <MathBlock
-      expression={`v_y = v_{y0} - g\\left(${timeLabel}\\right)`}
-      label={`v_y = v_y0 - g(${timeLabel})`}
-      testId="breakdown-current-velocity-axis2"
-    />
-  );
+  const velocity = formatVelocityDisplaySet(system, time);
   const rows: BreakdownRow[] = [
     { name: 'Initial position', axis1: equations.axis1.initialPosition, axis2: equations.axis2.initialPosition },
     {
       name: 'Initial velocity',
-      axis1: <MathBlock expression="v_{x0}" label="v_x0" testId="breakdown-initial-velocity-axis1" />,
-      axis2: <MathBlock expression="v_{y0}" label="v_y0" testId="breakdown-initial-velocity-axis2" />,
+      axis1: (
+        <MathBlock
+          expression={velocity.axis1.initialComponent.latex}
+          label={velocity.axis1.initialComponent.text}
+          testId="breakdown-initial-velocity-axis1"
+        />
+      ),
+      axis2: (
+        <MathBlock
+          expression={velocity.axis2.initialComponent.latex}
+          label={velocity.axis2.initialComponent.text}
+          testId="breakdown-initial-velocity-axis2"
+        />
+      ),
     },
     {
       name: 'Current Velocity',
-      axis1: <MathBlock expression="v_{x0}" label="v_x0" testId="breakdown-current-velocity-axis1" />,
-      axis2: currentVerticalVelocity,
+      axis1: (
+        <MathBlock
+          expression={velocity.axis1.currentComponent.latex}
+          label={velocity.axis1.currentComponent.text}
+          testId="breakdown-current-velocity-axis1"
+        />
+      ),
+      axis2: (
+        <MathBlock
+          expression={velocity.axis2.currentComponent.latex}
+          label={velocity.axis2.currentComponent.text}
+          testId="breakdown-current-velocity-axis2"
+        />
+      ),
     },
     { name: 'Acceleration', axis1: equations.axis1.acceleration, axis2: equations.axis2.acceleration },
   ];

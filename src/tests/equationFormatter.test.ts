@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeCoordinateSystem, rotateCoordinateSystem } from '../physics/coordinateSystem';
-import { formatEquationSet } from '../physics/equationFormatter';
+import { formatEquationSet, formatVelocityDisplaySet } from '../physics/equationFormatter';
 import { createPresets } from '../physics/presets';
 import { defaultParameters } from '../physics/projectile';
 import {
@@ -110,5 +110,43 @@ describe('equation formatter', () => {
     expect(equations.axis1.simplifiedText).toContain('sin(pi/4)');
     expect(equations.axis1.simplifiedText).toContain('v0');
     expect(equations.axis1.simplifiedText).toContain('g');
+  });
+
+  it('formats default symbolic velocity displays with component symbols', () => {
+    const velocity = formatVelocityDisplaySet(createPresets(defaultParameters)[0], 0);
+
+    expect(velocity.axis1.initialComponent.text).toBe('v_x0');
+    expect(velocity.axis2.initialComponent.text).toBe('v_y0');
+    expect(velocity.axis1.currentComponent.text).toBe('v_x0');
+    expect(velocity.axis2.currentComponent.text).toBe('v_y0 - g(0)');
+    expect(velocity.axis1.equation.text).toBe('v_x = v_x0');
+    expect(velocity.axis2.equation.text).toBe('v_y = v_y0 - g t');
+  });
+
+  it('formats rotated symbolic velocity displays with trig projections', () => {
+    const rotated = rotateCoordinateSystem(createPresets(defaultParameters)[0], Math.PI / 4);
+    const velocity = formatVelocityDisplaySet(rotated, 1);
+
+    expect(velocity.axis1.initialComponent.text).toBe('v_x0 cos(pi/4) + v_y0 sin(pi/4)');
+    expect(velocity.axis2.initialComponent.text).toBe('-v_x0 sin(pi/4) + v_y0 cos(pi/4)');
+    expect(velocity.axis1.currentComponent.text).toBe(
+      'v_x0 cos(pi/4) + v_y0 sin(pi/4) - g(1) sin(pi/4)',
+    );
+    expect(velocity.axis2.currentComponent.text).toBe(
+      '-v_x0 sin(pi/4) + v_y0 cos(pi/4) - g(1) cos(pi/4)',
+    );
+    expect(velocity.axis1.equation.text).toBe('v_x = v_x0 cos(pi/4) + v_y0 sin(pi/4) - g t sin(pi/4)');
+    expect(velocity.axis2.equation.text).toBe('v_y = -v_x0 sin(pi/4) + v_y0 cos(pi/4) - g t cos(pi/4)');
+  });
+
+  it('formats swapped-axis velocity displays with gravity in the vertical coordinate', () => {
+    const velocity = formatVelocityDisplaySet(createPresets(defaultParameters)[9], 2);
+
+    expect(velocity.axis1.initialComponent.text).toBe('v_y0');
+    expect(velocity.axis2.initialComponent.text).toBe('v_x0');
+    expect(velocity.axis1.currentComponent.text).toBe('v_y0 - g(2)');
+    expect(velocity.axis2.currentComponent.text).toBe('v_x0');
+    expect(velocity.axis1.equation.text).toBe('v_x = v_y0 - g t');
+    expect(velocity.axis2.equation.text).toBe('v_y = v_x0');
   });
 });

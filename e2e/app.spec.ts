@@ -85,17 +85,36 @@ test('velocity equations and current velocity update with time', async ({ page }
 
   await expect(page.getByRole('heading', { name: 'Velocity Equations' })).toBeVisible();
   await expect(page.getByTestId('velocity-equation-x')).toHaveAttribute('aria-label', 'v_x = v_x0');
-  await expect(page.getByTestId('velocity-equation-y')).toHaveAttribute('aria-label', 'v_y = v_y0 - g(0)');
+  await expect(page.getByTestId('velocity-equation-y')).toHaveAttribute('aria-label', 'v_y = v_y0 - g t');
   await expect(page.getByTestId('breakdown-initial-velocity-axis1')).toHaveAttribute('aria-label', 'v_x0');
   await expect(page.getByTestId('breakdown-initial-velocity-axis2')).toHaveAttribute('aria-label', 'v_y0');
 
   await expect(page.getByTestId('breakdown-current-velocity-axis1')).toHaveAttribute('aria-label', 'v_x0');
-  await expect(page.getByTestId('breakdown-current-velocity-axis2')).toHaveAttribute('aria-label', '0');
+  await expect(page.getByTestId('breakdown-current-velocity-axis2')).toHaveAttribute('aria-label', 'v_y0 - g(0)');
 
   await page.getByLabel('Projectile time').fill('1');
-  await expect(page.getByTestId('velocity-equation-y')).toHaveAttribute('aria-label', 'v_y = v_y0 - g(1)');
+  await expect(page.getByTestId('velocity-equation-y')).toHaveAttribute('aria-label', 'v_y = v_y0 - g t');
   await expect(page.getByTestId('breakdown-current-velocity-axis1')).toHaveAttribute('aria-label', 'v_x0');
-  await expect(page.getByTestId('breakdown-current-velocity-axis2')).toHaveAttribute('aria-label', 'v_y = v_y0 - g(1)');
+  await expect(page.getByTestId('breakdown-current-velocity-axis2')).toHaveAttribute('aria-label', 'v_y0 - g(1)');
+
+  const rotationSlider = page.getByLabel('Rotate coordinate axes');
+  await rotationSlider.focus();
+  await rotationSlider.press('ArrowRight');
+  await rotationSlider.press('ArrowRight');
+  await rotationSlider.press('ArrowRight');
+  await expect(rotationSlider).toHaveValue('3');
+  await expect(page.getByTestId('velocity-equation-x')).toHaveAttribute(
+    'aria-label',
+    'v_x = v_x0 cos(pi/4) + v_y0 sin(pi/4) - g t sin(pi/4)',
+  );
+  await expect(page.getByTestId('velocity-equation-y')).toHaveAttribute(
+    'aria-label',
+    'v_y = -v_x0 sin(pi/4) + v_y0 cos(pi/4) - g t cos(pi/4)',
+  );
+  await expect(page.getByTestId('breakdown-current-velocity-axis1')).toHaveAttribute(
+    'aria-label',
+    'v_x0 cos(pi/4) + v_y0 sin(pi/4) - g(1) sin(pi/4)',
+  );
 });
 
 test('projectile vectors show velocity components and fixed gravity reference', async ({ page }) => {

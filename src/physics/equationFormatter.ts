@@ -10,6 +10,7 @@ type SymbolicTerm = {
   symbol?: string;
   timePower: TimePower;
   trig?: 'sin' | 'cos';
+  timeFactor?: string;
 };
 
 export type AxisEquation = {
@@ -25,6 +26,23 @@ export type AxisEquation = {
 export type EquationSet = {
   axis1: AxisEquation;
   axis2: AxisEquation;
+};
+
+export type FormattedExpression = {
+  latex: string;
+  text: string;
+};
+
+export type VelocityDisplayAxis = {
+  label: string;
+  initialComponent: FormattedExpression;
+  currentComponent: FormattedExpression;
+  equation: FormattedExpression;
+};
+
+export type VelocityDisplaySet = {
+  axis1: VelocityDisplayAxis;
+  axis2: VelocityDisplayAxis;
 };
 
 const EPSILON = 1e-8;
@@ -70,7 +88,10 @@ const addTerm = (terms: SymbolicTerm[], term: SymbolicTerm): void => {
   if (almostEqual(term.coefficient, 0, EPSILON)) return;
   const existing = terms.find(
     (candidate) =>
-      candidate.symbol === term.symbol && candidate.timePower === term.timePower && candidate.trig === term.trig,
+      candidate.symbol === term.symbol &&
+      candidate.timePower === term.timePower &&
+      candidate.trig === term.trig &&
+      candidate.timeFactor === term.timeFactor,
   );
   if (existing) {
     existing.coefficient += term.coefficient;
@@ -190,11 +211,19 @@ const symbolLatex = (symbol?: string): string => {
   return subscript ? `${base}_{${subscript}}` : base;
 };
 
-const symbolText = (symbol?: string): string => symbol?.replaceAll('_', '') ?? '';
+const symbolText = (symbol?: string): string => {
+  if (symbol === 'v_x0' || symbol === 'v_y0') return symbol;
+  return symbol?.replaceAll('_', '') ?? '';
+};
 
 const trigText = (trig: SymbolicTerm['trig'] | undefined, mode: 'latex' | 'text', theta: string): string => {
   if (!trig) return '';
   return mode === 'latex' ? `\\${trig}\\left(${theta}\\right)` : `${trig}(${theta})`;
+};
+
+const timeFactorText = (timeFactor: string | undefined, mode: 'latex' | 'text'): string => {
+  if (!timeFactor) return '';
+  return mode === 'latex' ? `\\left(${timeFactor}\\right)` : `(${timeFactor})`;
 };
 
 const formatCoefficient = (coefficient: number, mode: 'latex' | 'text', includeOne: boolean): string => {
@@ -217,9 +246,17 @@ const formatSingleTerm = (term: SymbolicTerm, mode: 'latex' | 'text', first: boo
           ? 't^2'
           : 't^2';
   const trig = trigText(term.trig, mode, theta);
-  const includeOne = !symbol && !time && !trig;
+  const timeFactor = timeFactorText(term.timeFactor, mode);
+  const symbolFactor = symbol && timeFactor ? `${symbol}${timeFactor}` : symbol;
+  const includeOne = !symbolFactor && !time && !timeFactor && !trig;
   const coefficient = formatCoefficient(term.coefficient, mode, includeOne);
-  const factors = [symbol, time && !symbol ? time : '', time && symbol ? time : '', trig].filter(Boolean);
+  const factors = [
+    symbolFactor,
+    time && !symbol ? time : '',
+    time && symbol ? time : '',
+    !symbol && timeFactor ? timeFactor : '',
+    trig,
+  ].filter(Boolean);
   const body = [coefficient, ...factors].filter(Boolean).join(' ');
   return `${sign}${body}`;
 };
@@ -236,7 +273,7 @@ const cleanTerms = (terms: SymbolicTerm[]): SymbolicTerm[] =>
     );
 
 const symbolSortRank = (symbol?: string): number => {
-  const order = ['H', 'h', 'd_1', 'd_2', 'v_0', 'g'];
+  const order = ['H', 'h', 'd_1', 'd_2', 'v_0', 'v_x0', 'v_y0', 'g'];
   const index = order.indexOf(symbol ?? '');
   return index === -1 ? order.length : index;
 };
@@ -284,6 +321,42 @@ const rotatedVelocityComponentTerms = (axisIndex: 1 | 2, system: CoordinateSyste
   }
 
   return [{ coefficient: cross >= 0 ? -1 : 1, symbol: 'v_0', timePower: 0, trig: 'sin' }];
+};
+
+const genericVelocityComponentTerms = (
+  axis: Vector2,
+  axisIndex: 1 | 2,
+  system: CoordinateSystem,
+): SymbolicTerm[] => {
+  const axisX = snap(axis.x);
+  const axisY = snap(axis.y);
+
+  if (isCardinal(axis)) {
+    const terms: SymbolicTerm[] = [];
+    if (axisX !== 0) terms.push({ coefficient: axisX, symbol: 'v_x0', timePower: 0 });
+    if (axisY !== 0) terms.push({ coefficient: axisY, symbol: 'v_y0', timePower: 0 });
+    return terms;
+  }
+
+  const cross = system.axis1.x * system.axis2.y - system.axis1.y * system.axis2.x;
+  if (axisIndex === 1) {
+    return [
+      { coefficient: 1, symbol: 'v_x0', timePower: 0, trig: 'cos' },
+      { coefficient: 1, symbol: 'v_y0', timePower: 0, trig: 'sin' },
+    ];
+  }
+
+  if (cross >= 0) {
+    return [
+      { coefficient: -1, symbol: 'v_x0', timePower: 0, trig: 'sin' },
+      { coefficient: 1, symbol: 'v_y0', timePower: 0, trig: 'cos' },
+    ];
+  }
+
+  return [
+    { coefficient: 1, symbol: 'v_x0', timePower: 0, trig: 'sin' },
+    { coefficient: -1, symbol: 'v_y0', timePower: 0, trig: 'cos' },
+  ];
 };
 
 const rotatedAccelerationComponentTerms = (axisIndex: 1 | 2, system: CoordinateSystem): SymbolicTerm[] => {
@@ -341,3 +414,51 @@ export const formatEquationSet = (params: ProjectileParameters, system: Coordina
     }, 2),
   };
 };
+
+const formatTime = (value: number): string => value.toFixed(2).replace(/\.?0+$/, '') || '0';
+
+const formattedExpression = (terms: SymbolicTerm[], latexTheta: string, textTheta: string): FormattedExpression => ({
+  latex: formatTerms(terms, 'latex', latexTheta),
+  text: formatTerms(terms, 'text', textTheta),
+});
+
+const velocityEquationLabel = (label: string, mode: 'latex' | 'text'): string =>
+  mode === 'latex' ? `v_{${label}}` : `v_${label}`;
+
+const velocityDisplayAxis = (
+  label: string,
+  axis: Vector2,
+  system: CoordinateSystem,
+  axisIndex: 1 | 2,
+  time: number,
+): VelocityDisplayAxis => {
+  const latexTheta = formatTheta(system, 'latex');
+  const textTheta = formatTheta(system, 'text');
+  const timeLabel = formatTime(time);
+  const initial = genericVelocityComponentTerms(axis, axisIndex, system);
+  const acceleration = accelerationComponentTerms(axis) ?? rotatedAccelerationComponentTerms(axisIndex, system);
+  const current = [
+    ...initial,
+    ...acceleration.map((term) => ({
+      ...term,
+      timeFactor: timeLabel,
+    })),
+  ];
+  const equation = [...initial, ...acceleration.map((term) => ({ ...term, timePower: 1 as TimePower }))];
+  const equationRightSide = formattedExpression(equation, latexTheta, textTheta);
+
+  return {
+    label,
+    initialComponent: formattedExpression(initial, latexTheta, textTheta),
+    currentComponent: formattedExpression(current, latexTheta, textTheta),
+    equation: {
+      latex: `${velocityEquationLabel(label, 'latex')} = ${equationRightSide.latex}`,
+      text: `${velocityEquationLabel(label, 'text')} = ${equationRightSide.text}`,
+    },
+  };
+};
+
+export const formatVelocityDisplaySet = (system: CoordinateSystem, time: number): VelocityDisplaySet => ({
+  axis1: velocityDisplayAxis(system.label1, system.axis1, system, 1, time),
+  axis2: velocityDisplayAxis(system.label2, system.axis2, system, 2, time),
+});
