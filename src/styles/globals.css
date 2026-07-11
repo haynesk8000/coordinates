@@ -772,6 +772,223 @@ textarea {
   margin: 0.9rem 0;
 }
 
+.walkthroughs {
+  padding-bottom: 0.85rem;
+}
+
+.walkthrough-launchers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.walkthrough-launcher {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.walkthrough-launcher.complete {
+  border: 2px solid #8a6a12;
+  background: #fffbea;
+}
+
+.walkthrough-launcher button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  font-weight: 750;
+}
+
+.walkthrough-launcher progress {
+  width: 100%;
+  height: 0.72rem;
+  accent-color: #333333;
+}
+
+.walkthrough-launcher.complete progress {
+  accent-color: #8a6a12;
+}
+
+.walkthrough-launcher > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.complete-badge {
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: #8a6a12;
+  color: #ffffff;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.walkthrough-popup {
+  position: fixed;
+  z-index: 100;
+  top: 1rem;
+  left: max(1rem, calc((100vw - 1440px) / 2 + 1rem));
+  display: flex;
+  flex-direction: column;
+  width: clamp(250px, 20vw, 300px);
+  max-height: calc(100vh - 2rem);
+  border: 2px solid #777777;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.13);
+  overflow: hidden;
+}
+
+.walkthrough-popup-header,
+.walkthrough-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  background: #f3f3f3;
+}
+
+.walkthrough-popup-header {
+  border-bottom: 1px solid var(--line);
+}
+
+.walkthrough-popup-header h3,
+.walkthrough-popup-header p,
+.walkthrough-learning p {
+  margin-bottom: 0;
+}
+
+.walkthrough-popup h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  padding: 0.35rem;
+}
+
+.walkthrough-popup-grid {
+  display: block;
+  padding: 0.75rem 0.85rem;
+  overflow-y: auto;
+}
+
+.walkthrough-popup ol {
+  margin: 0 0 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.walkthrough-popup li + li {
+  margin-top: 0.25rem;
+}
+
+.walkthrough-learning {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.walkthrough-learning h4:not(:first-of-type) {
+  margin-top: 0.75rem;
+}
+
+.task-status {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem;
+  border: 1px solid #bbbbbb;
+  border-radius: 6px;
+  background: #f5f5f5;
+  font-weight: 650;
+}
+
+.task-status.success {
+  border-color: #47704d;
+  background: #edf7ee;
+  color: #234a29;
+}
+
+.walkthrough-hint {
+  margin: 0.65rem 0 0;
+  padding: 0.65rem;
+  border-left: 4px solid #8a6a12;
+  background: #fffbea;
+}
+
+.walkthrough-navigation {
+  border-top: 1px solid var(--line);
+}
+
+.walkthrough-navigation button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.walkthrough-navigation > span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+@media (min-width: 1101px) {
+  .explore-layout.walkthrough-active {
+    padding-left: clamp(265px, calc(20vw + 1rem), 315px);
+  }
+
+  .walkthrough-active .walkthroughs {
+    display: contents;
+  }
+
+  .walkthrough-active .walkthroughs > .panel-title,
+  .walkthrough-active .walkthrough-launchers {
+    display: none;
+  }
+
+  .walkthrough-active .side-column {
+    gap: 0.55rem;
+  }
+
+  .walkthrough-active .side-column > :nth-child(1) {
+    order: 1;
+  }
+
+  .walkthrough-active .side-column > :nth-child(3) {
+    order: 2;
+  }
+
+  .walkthrough-active .side-column > :nth-child(2) {
+    order: 3;
+  }
+
+  .walkthrough-active .side-column > :nth-child(4) {
+    order: 4;
+  }
+
+  .walkthrough-active .side-column .panel {
+    padding: 0.7rem;
+  }
+
+  .walkthrough-active .side-column th,
+  .walkthrough-active .side-column td {
+    padding: 0.4rem 0.35rem;
+  }
+}
+
 @media (max-width: 1100px) {
   .explore-layout,
   .quiz-layout,
@@ -848,5 +1065,26 @@ textarea {
   .feedback button + button {
     margin-left: 0;
     margin-top: 0.5rem;
+  }
+
+  .walkthrough-launchers {
+    grid-template-columns: 1fr;
+  }
+
+  .walkthrough-popup {
+    top: 0.7rem;
+    right: 0.7rem;
+    left: 0.7rem;
+    width: auto;
+    max-height: calc(100vh - 1.4rem);
+  }
+
+  .walkthrough-navigation {
+    flex-wrap: wrap;
+  }
+
+  .walkthrough-navigation > span {
+    order: -1;
+    flex-basis: 100%;
   }
 }

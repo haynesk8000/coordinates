@@ -1,0 +1,23 @@
+### Feature Update: Walkthrough Layout Adjustments
+
+Make the following changes to the walkthrough interface:
+
+1. **Remove instructional diagrams**
+
+   * Remove all diagrams, illustrations, and visual aids from the **Observation** and **Explanation** sections of every walkthrough task.
+   * Retain all existing text content from `explorer_tasks.md`.
+
+2. **Preserve the interactive display**
+
+   * Do **not** modify the size, layout, or functionality of the interactive display.
+   * The interactive display should remain exactly as it is.
+
+3. **Resize the walkthrough window**
+
+   * Adjust the size and layout of the walkthrough task window so that both:
+
+     * the walkthrough task window, and
+     * the interactive display
+       are fully visible on a single screen without requiring the user to switch views.
+   * The walkthrough window should be compact enough to avoid obscuring the interactive workspace while remaining large enough for the task content to be comfortably readable.
+   * Preserve all existing walkthrough functionality, including navigation, task validation, progress tracking, and hints.

@@ -17,6 +17,7 @@ import { EquationPanel } from './EquationPanel';
 import { ComponentBreakdown } from './ComponentBreakdown';
 import { TimeSlider } from './TimeSlider';
 import { VelocityEquationsPanel } from './VelocityEquationsPanel';
+import { ExploreWalkthroughs } from './ExploreWalkthroughs';
 
 type Props = {
   params: ProjectileParameters;
@@ -79,6 +80,8 @@ export function ExploreMode({
   onTimeChange,
 }: Props) {
   const [angleUnits, setAngleUnits] = useState(() => angleUnitOf(system));
+  const [axisHandleMoves, setAxisHandleMoves] = useState(0);
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const selectedPreset = presets.find((preset) => preset.id === selectedPresetId) ?? presets[0];
   const presetSelectValue = isPresetModified ? modifiedPresetValue : selectedPresetId;
   const applySystemChange = (nextSystem: CoordinateSystem) => {
@@ -103,14 +106,23 @@ export function ExploreMode({
   };
 
   return (
-    <div className="mode-layout explore-layout">
+    <div className={`mode-layout explore-layout ${walkthroughOpen ? 'walkthrough-active' : ''}`}>
       <div className="primary-column">
+        <ExploreWalkthroughs
+          params={params}
+          system={system}
+          time={time}
+          rotationUnits={angleUnits}
+          axisHandleMoves={axisHandleMoves}
+          onOpenChange={setWalkthroughOpen}
+        />
         <SceneCanvas
           params={params}
           system={system}
           time={time}
           onSystemChange={onSystemChange}
           onRotationUnitsChange={setRotation}
+          onAxisHandleInteraction={() => setAxisHandleMoves((count) => count + 1)}
           rotationUnits={angleUnits}
           interactive
           showInitialCoordinateGuides

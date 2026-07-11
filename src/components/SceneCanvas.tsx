@@ -33,6 +33,7 @@ type Props = {
   caption?: string;
   onSystemChange?: (system: CoordinateSystem) => void;
   onRotationUnitsChange?: (units: number) => void;
+  onAxisHandleInteraction?: () => void;
   rotationUnits?: number;
   interactive?: boolean;
   small?: boolean;
@@ -84,6 +85,7 @@ export function SceneCanvas({
   caption,
   onSystemChange,
   onRotationUnitsChange,
+  onAxisHandleInteraction,
   rotationUnits,
   interactive = false,
   small = false,
@@ -161,6 +163,7 @@ export function SceneCanvas({
     if (dragging === 'origin') {
       updateOrigin(pointerWorld);
     } else {
+      onAxisHandleInteraction?.();
       updateRotationFromPointer(dragging, pointerWorld);
     }
   };

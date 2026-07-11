@@ -36,6 +36,46 @@ test('top-level topics expose learning-mode placeholders and preserve coordinate
   await expect(page.getByTestId('equation-y')).toHaveAttribute('aria-label', 'y(t) = 0 + 1/2 g t^2');
 });
 
+test('translation walkthrough gates navigation and resumes saved progress', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
+
+  await page.getByRole('button', { name: 'Translation' }).click();
+  const walkthrough = page.getByRole('dialog');
+  await expect(walkthrough.getByRole('heading', { name: 'Move the Origin to the Right' })).toBeVisible();
+  await expect.poll(async () => {
+    const box = await walkthrough.boundingBox();
+    const viewport = page.viewportSize();
+    return Boolean(box && viewport && box.x >= 0 && box.y >= 0 && box.x + box.width <= viewport.width && box.y + box.height <= viewport.height);
+  }).toBe(true);
+
+  const sceneBox = await page.locator('.scene').first().boundingBox();
+  const taskBox = await walkthrough.boundingBox();
+  expect(sceneBox && taskBox && (sceneBox.x + sceneBox.width <= taskBox.x || taskBox.x + taskBox.width <= sceneBox.x)).toBe(true);
+  expect(taskBox && sceneBox && taskBox.x + taskBox.width <= sceneBox.x).toBe(true);
+
+  const equationPanel = page.getByRole('region', { name: 'Equations', exact: true });
+  const breakdownPanel = page.getByRole('region', { name: 'Component Breakdown', exact: true });
+  await expect.poll(async () => {
+    const viewport = page.viewportSize();
+    const boxes = await Promise.all([page.locator('.scene').first().boundingBox(), equationPanel.boundingBox(), breakdownPanel.boundingBox()]);
+    return Boolean(viewport && boxes.every((box) => box && box.y >= 0 && box.y + box.height <= viewport.height));
+  }).toBe(true);
+  await expect(walkthrough.getByRole('button', { name: 'Next' })).toBeDisabled();
+
+  const origin = page.getByRole('slider', { name: /Coordinate origin/ });
+  await origin.press('Shift+ArrowRight');
+
+  await expect(walkthrough.getByText(/Task complete/)).toBeVisible();
+  await expect(walkthrough.getByRole('button', { name: 'Next' })).toBeEnabled();
+  await expect(page.getByLabel('translation walkthrough progress')).toHaveAttribute('value', '1');
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Translation' }).click();
+  await expect(page.getByRole('dialog').getByRole('heading', { name: 'Move the Origin to the Left' })).toBeVisible();
+});
+
 test('selecting a preset updates equations', async ({ page }) => {
   await page.goto('/');
   await page.getByLabel('Coordinate preset').selectOption('4');
