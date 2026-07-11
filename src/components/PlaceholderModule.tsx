@@ -9,6 +9,7 @@ const modeLabels: Record<Mode, string> = {
   explore: 'Explore',
   explain: 'Explain',
   quiz: 'Quiz',
+  fun: 'Fun Zone',
 };
 
 export function PlaceholderModule({ title }: Props) {

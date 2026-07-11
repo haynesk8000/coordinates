@@ -232,3 +232,24 @@ test('dragging either axis rotates with the same snapped units as the slider', a
   await axisHandles.nth(1).dragTo(axisHandles.nth(0));
   await expect(slider).toHaveValue('-6');
 });
+
+test('Fun Zone switches among five games and gives immediate scored feedback', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('tablist', { name: 'Learning mode' }).getByRole('tab', { name: 'Fun Zone' }).click();
+
+  const activities = page.getByRole('navigation', { name: 'Fun Zone activities' });
+  await expect(activities.getByRole('button')).toHaveCount(5);
+  await expect(page.getByRole('heading', { name: 'Target Plotter' })).toBeVisible();
+
+  await activities.getByRole('button', { name: /Rotation Reactor/ }).click();
+  await expect(page.getByRole('heading', { name: 'Rotation Reactor' })).toBeVisible();
+
+  await activities.getByRole('button', { name: /Target Plotter/ }).click();
+  await page.getByRole('combobox', { name: 'x', exact: true }).selectOption('5');
+  await page.getByRole('combobox', { name: 'y', exact: true }).selectOption('5');
+  await page.getByRole('button', { name: 'Plot this point' }).click();
+
+  await expect(page.getByRole('status')).toContainText('The target was');
+  await expect(page.getByLabel('Game score')).toContainText('0% accuracy');
+  await expect(page.getByLabel('0 total points from 1 attempts')).toBeVisible();
+});

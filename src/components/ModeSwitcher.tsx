@@ -1,19 +1,24 @@
-import { Compass, FlaskConical, GraduationCap } from 'lucide-react';
+import { Compass, FlaskConical, Gamepad2, GraduationCap } from 'lucide-react';
 
-export type Mode = 'explore' | 'explain' | 'quiz';
+export type Mode = 'explore' | 'explain' | 'quiz' | 'fun';
 
 type Props = {
   mode: Mode;
   onChange: (mode: Mode) => void;
+  includeFunZone?: boolean;
 };
 
-const modes: Array<{ id: Mode; label: string; icon: typeof Compass }> = [
+const coreModes: Array<{ id: Mode; label: string; icon: typeof Compass }> = [
   { id: 'explore', label: 'Explore', icon: Compass },
   { id: 'explain', label: 'Explain', icon: GraduationCap },
   { id: 'quiz', label: 'Quiz', icon: FlaskConical },
 ];
 
-export function ModeSwitcher({ mode, onChange }: Props) {
+const funMode = { id: 'fun' as const, label: 'Fun Zone', icon: Gamepad2 };
+
+export function ModeSwitcher({ mode, onChange, includeFunZone = false }: Props) {
+  const modes = includeFunZone ? [...coreModes, funMode] : coreModes;
+
   return (
     <div className="mode-switcher" role="tablist" aria-label="Learning mode">
       {modes.map((item) => {

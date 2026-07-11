@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Compass, FlaskConical, GraduationCap } from 'lucide-react';
+import { Compass, FlaskConical, Gamepad2, GraduationCap } from 'lucide-react';
 import type { CoordinateSystem } from '../physics/coordinateSystem';
 import { createPresets } from '../physics/presets';
 import { defaultParameters } from '../physics/projectile';
 import { ExplainMode } from './ExplainMode';
 import { ExploreMode } from './ExploreMode';
+import { FunZoneMode } from './FunZoneMode';
 import { ModeSwitcher, type Mode } from './ModeSwitcher';
 import { QuizMode } from './QuizMode';
 
@@ -23,6 +24,11 @@ const modeMeta: Record<Mode, { icon: typeof Compass; copy: string }> = {
     icon: FlaskConical,
     copy:
       'Choose the correct equation by reasoning from the coordinate system. Look at the origin, the axis directions, the launch velocity, and gravity.',
+  },
+  fun: {
+    icon: Gamepad2,
+    copy:
+      'Put your coordinate skills into play. Choose a game, chase a high score, and try a fresh randomized challenge whenever you are ready.',
   },
 };
 
@@ -64,7 +70,7 @@ export function CoordinateSystemsModule() {
           <p className="eyebrow">Projectile Coordinate Systems</p>
           <h2 className="module-title">Coordinate Kinematics Lab</h2>
         </div>
-        <ModeSwitcher mode={mode} onChange={setMode} />
+        <ModeSwitcher mode={mode} onChange={setMode} includeFunZone />
       </header>
 
       <section className="intro-band" aria-live="polite">
@@ -92,6 +98,7 @@ export function CoordinateSystemsModule() {
         )}
         {mode === 'explain' && <ExplainMode params={params} system={system} />}
         {mode === 'quiz' && <QuizMode params={params} onReviewExplain={() => setMode('explain')} />}
+        {mode === 'fun' && <FunZoneMode />}
       </div>
     </>
   );
