@@ -17,9 +17,44 @@ const lineMetrics = async (line: Locator) => {
   };
 };
 
+test('top-level topics expose learning-mode placeholders and preserve coordinate state', async ({ page }) => {
+  await page.goto('/');
+  const topics = page.getByRole('tablist', { name: 'Physics topics' });
+
+  await expect(topics.getByRole('tab')).toHaveCount(5);
+  await page.getByLabel('Coordinate preset').selectOption('4');
+
+  await topics.getByRole('tab', { name: 'Projectile Motion' }).click();
+  const projectileModule = page.getByRole('tabpanel', { name: 'Projectile Motion' });
+  await expect(projectileModule.getByRole('heading', { level: 2, name: 'Projectile Motion' })).toBeVisible();
+  await page.getByRole('tablist', { name: 'Learning mode' }).getByRole('tab', { name: 'Quiz' }).click();
+  await expect(projectileModule.getByText('Quiz mode')).toBeVisible();
+  await expect(projectileModule.getByText('Content coming soon.')).toBeVisible();
+
+  await topics.getByRole('tab', { name: 'Coordinate Systems' }).click();
+  await expect(page.getByLabel('Coordinate preset')).toHaveValue('4');
+  await expect(page.getByTestId('equation-y')).toHaveAttribute('aria-label', 'y(t) = 0 + 1/2 g t^2');
+});
+
 test('selecting a preset updates equations', async ({ page }) => {
   await page.goto('/');
   await page.getByLabel('Coordinate preset').selectOption('4');
+  await expect(page.getByTestId('equation-y')).toHaveAttribute('aria-label', 'y(t) = 0 + 1/2 g t^2');
+});
+
+test('selecting the active preset reapplies it after coordinate edits', async ({ page }) => {
+  await page.goto('/');
+  const presetSelect = page.getByLabel('Coordinate preset');
+
+  await presetSelect.selectOption('4');
+  await expect(page.getByTestId('equation-y')).toHaveAttribute('aria-label', 'y(t) = 0 + 1/2 g t^2');
+
+  await page.getByRole('button', { name: /Flip y/ }).click();
+  await expect(presetSelect).toHaveValue('__modified__');
+  await expect(page.getByTestId('equation-y')).toHaveAttribute('aria-label', 'y(t) = 0 - 1/2 g t^2');
+
+  await presetSelect.selectOption('4');
+  await expect(presetSelect).toHaveValue('4');
   await expect(page.getByTestId('equation-y')).toHaveAttribute('aria-label', 'y(t) = 0 + 1/2 g t^2');
 });
 

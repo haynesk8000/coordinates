@@ -69,6 +69,46 @@ button:disabled {
   padding: 1rem;
 }
 
+.site-header {
+  padding: 0.7rem 0 1rem;
+}
+
+.topic-switcher {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.topic-switcher button {
+  flex: 1 0 auto;
+  min-height: 46px;
+  border-color: transparent;
+  padding-inline: 1rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.topic-switcher button.active {
+  background: #e8e8e8;
+  border-color: #aaaaaa;
+  color: #111111;
+  font-weight: 800;
+}
+
+.topic-panels {
+  margin-top: 0.75rem;
+}
+
+.topic-panel[hidden] {
+  display: none;
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -98,6 +138,12 @@ h2 {
 h3 {
   font-size: 0.98rem;
   margin-bottom: 0.45rem;
+}
+
+.module-title {
+  font-size: clamp(1.45rem, 2.4vw, 2.1rem);
+  line-height: 1.1;
+  margin-bottom: 0;
 }
 
 .eyebrow {
@@ -161,6 +207,22 @@ h3 {
   color: var(--muted);
   max-width: 92ch;
   margin-bottom: 1rem;
+}
+
+.placeholder-panel {
+  display: grid;
+  min-height: 230px;
+  place-content: center;
+  text-align: center;
+}
+
+.placeholder-panel h3 {
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+}
+
+.placeholder-panel p:last-child {
+  color: var(--muted);
+  margin-bottom: 0;
 }
 
 .mode-layout,
@@ -744,6 +806,14 @@ textarea {
   .topbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .site-header {
+    padding-bottom: 0.75rem;
+  }
+
+  .topic-switcher button {
+    flex-basis: auto;
   }
 
   .mode-switcher {

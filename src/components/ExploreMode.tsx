@@ -22,6 +22,7 @@ type Props = {
   params: ProjectileParameters;
   presets: CoordinatePreset[];
   selectedPresetId: string;
+  isPresetModified: boolean;
   onPresetChange: (presetId: string) => void;
   system: CoordinateSystem;
   onSystemChange: (system: CoordinateSystem) => void;
@@ -35,6 +36,8 @@ const labelSets = {
   rs: ['r', 's'],
   thetaPhi: ['θ', 'φ'],
 };
+
+const modifiedPresetValue = '__modified__';
 
 const angleUnitOf = (system: CoordinateSystem) => Math.round(Math.atan2(system.axis1.y, system.axis1.x) / ROTATION_UNIT_RADIANS);
 
@@ -68,6 +71,7 @@ export function ExploreMode({
   params,
   presets,
   selectedPresetId,
+  isPresetModified,
   onPresetChange,
   system,
   onSystemChange,
@@ -76,10 +80,19 @@ export function ExploreMode({
 }: Props) {
   const [angleUnits, setAngleUnits] = useState(() => angleUnitOf(system));
   const selectedPreset = presets.find((preset) => preset.id === selectedPresetId) ?? presets[0];
+  const presetSelectValue = isPresetModified ? modifiedPresetValue : selectedPresetId;
   const applySystemChange = (nextSystem: CoordinateSystem) => {
     const clampedSystem = clampSystemToScene(nextSystem, params);
     setAngleUnits(angleUnitOf(clampedSystem));
     onSystemChange(clampedSystem);
+  };
+
+  const applyPreset = (presetId: string) => {
+    const nextPreset = presets.find((preset) => preset.id === presetId);
+    if (!nextPreset) return;
+
+    setAngleUnits(angleUnitOf(nextPreset));
+    onPresetChange(presetId);
   };
 
   const setRotation = (nextAngleUnits: number) => {
@@ -113,13 +126,16 @@ export function ExploreMode({
               Preset
               <select
                 aria-label="Coordinate preset"
-                value={selectedPresetId}
+                value={presetSelectValue}
                 onChange={(event) => {
-                  const nextPreset = presets.find((preset) => preset.id === event.target.value);
-                  if (nextPreset) setAngleUnits(angleUnitOf(nextPreset));
-                  onPresetChange(event.target.value);
+                  applyPreset(event.target.value);
                 }}
               >
+                {isPresetModified ? (
+                  <option value={modifiedPresetValue} disabled>
+                    Modified from {selectedPreset.name}
+                  </option>
+                ) : null}
                 {presets.map((preset) => (
                   <option key={preset.id} value={preset.id}>
                     {preset.name}
@@ -150,7 +166,7 @@ export function ExploreMode({
               <FlipVertical aria-hidden="true" size={18} />
               Flip {system.label2}
             </button>
-            <button type="button" className="tool-button" onClick={() => applySystemChange(selectedPreset)}>
+            <button type="button" className="tool-button" onClick={() => applyPreset(selectedPresetId)}>
               <RotateCcw aria-hidden="true" size={18} />
               Reset
             </button>
