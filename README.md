@@ -1,6 +1,6 @@
 # Coordinate Kinematics Lab
 
-Interactive Vite + React + TypeScript site for learning coordinate-system descriptions of projectile motion. The app lets students move, rotate, flip, relabel, and swap coordinate axes while the physical projectile path stays fixed. A five-game Fun Zone adds randomized practice with plotting, coordinate reading, translations, rotations, and coordinate relationships.
+Interactive Vite + React + TypeScript site for learning coordinate-system descriptions of projectile motion. The app lets students move, rotate, flip, relabel, and swap coordinate axes while the physical projectile path stays fixed. A five-game Fun Zone adds randomized practice with plotting, coordinate reading, translations, rotations, and coordinate relationships. Each game automatically increases from 0% to 100% difficulty in 20% steps after every three correct answers.
 
 ## Run
 

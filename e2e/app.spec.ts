@@ -240,13 +240,18 @@ test('Fun Zone switches among five games and gives immediate scored feedback', a
   const activities = page.getByRole('navigation', { name: 'Fun Zone activities' });
   await expect(activities.getByRole('button')).toHaveCount(5);
   await expect(page.getByRole('heading', { name: 'Target Plotter' })).toBeVisible();
+  await expect(page.getByLabel('Difficulty 0%')).toBeVisible();
 
   await activities.getByRole('button', { name: /Rotation Reactor/ }).click();
   await expect(page.getByRole('heading', { name: 'Rotation Reactor' })).toBeVisible();
 
   await activities.getByRole('button', { name: /Target Plotter/ }).click();
-  await page.getByRole('combobox', { name: 'x', exact: true }).selectOption('5');
-  await page.getByRole('combobox', { name: 'y', exact: true }).selectOption('5');
+  const targetMatch = (await page.getByTestId('plot-target').innerText()).match(/\((-?\d+),\s*(-?\d+)\)/);
+  expect(targetMatch).not.toBeNull();
+  const targetX = Number(targetMatch?.[1]);
+  const targetY = Number(targetMatch?.[2]);
+  await page.getByRole('combobox', { name: 'x', exact: true }).selectOption(String(targetX === 2 ? -2 : targetX + 1));
+  await page.getByRole('combobox', { name: 'y', exact: true }).selectOption(String(targetY));
   await page.getByRole('button', { name: 'Plot this point' }).click();
 
   await expect(page.getByRole('status')).toContainText('The target was');

@@ -932,6 +932,52 @@ textarea {
   font-size: 0.84rem;
 }
 
+.fun-difficulty {
+  display: grid;
+  flex: 1 1 250px;
+  grid-template-columns: minmax(165px, auto) minmax(90px, 1fr);
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #c7cde0;
+  border-radius: 9px;
+  color: #26335b;
+  background: #eef2ff;
+}
+
+.fun-difficulty div {
+  display: grid;
+  line-height: 1.25;
+}
+
+.fun-difficulty small {
+  color: #59627b;
+}
+
+.fun-difficulty progress {
+  width: 100%;
+  height: 12px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: #d8deee;
+}
+
+.fun-difficulty progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: #d8deee;
+}
+
+.fun-difficulty progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3d69cc, #7856c5);
+}
+
+.fun-difficulty progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3d69cc, #7856c5);
+}
+
 .fun-prompt {
   margin: 0.9rem 0;
   padding: 0.75rem 1rem;
@@ -939,6 +985,14 @@ textarea {
   border-radius: 5px 10px 10px 5px;
   background: #f2f5fd;
   font-size: clamp(1rem, 1.7vw, 1.2rem);
+}
+
+.fun-prompt small {
+  display: block;
+  margin-top: 0.25rem;
+  color: #59627b;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .fun-play-grid {
@@ -1052,6 +1106,20 @@ textarea {
 .fun-feedback > svg { width: 28px; height: 28px; }
 .fun-feedback p { margin-bottom: 0; }
 .fun-feedback button { background: #2e4c99; }
+
+.fun-feedback .fun-level-up {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: fit-content;
+  margin-top: 0.4rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  color: #4e318d;
+  background: #eee6ff;
+  font-size: 0.85rem;
+  font-weight: 850;
+}
 
 .score-big {
   font-size: 2.5rem;
@@ -1396,6 +1464,10 @@ textarea {
   }
 
   .fun-play-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fun-difficulty {
     grid-template-columns: 1fr;
   }
 
