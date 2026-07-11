@@ -17,7 +17,7 @@ const lineMetrics = async (line: Locator) => {
   };
 };
 
-test('top-level topics expose learning-mode placeholders and preserve coordinate state', async ({ page }) => {
+test('top-level topics expose complete learning modules and preserve coordinate state', async ({ page }) => {
   await page.goto('/');
   const topics = page.getByRole('tablist', { name: 'Physics topics' });
 
@@ -26,14 +26,43 @@ test('top-level topics expose learning-mode placeholders and preserve coordinate
 
   await topics.getByRole('tab', { name: 'Projectile Motion' }).click();
   const projectileModule = page.getByRole('tabpanel', { name: 'Projectile Motion' });
-  await expect(projectileModule.getByRole('heading', { level: 2, name: 'Projectile Motion' })).toBeVisible();
+  await expect(projectileModule.getByRole('heading', { level: 2, name: 'Projectile Motion Lab' })).toBeVisible();
+  await expect(projectileModule.getByLabel('Launch speed')).toBeVisible();
   await page.getByRole('tablist', { name: 'Learning mode' }).getByRole('tab', { name: 'Quiz' }).click();
-  await expect(projectileModule.getByText('Quiz mode')).toBeVisible();
-  await expect(projectileModule.getByText('Content coming soon.')).toBeVisible();
+  await expect(projectileModule.getByText(/At the highest point/)).toBeVisible();
 
   await topics.getByRole('tab', { name: 'Coordinate Systems' }).click();
   await expect(page.getByLabel('Coordinate preset')).toHaveValue('4');
   await expect(page.getByTestId('equation-y')).toHaveAttribute('aria-label', 'y(t) = 0 + 1/2 g t^2');
+});
+
+test('new physics modules provide interactive simulations, explanations, and feedback', async ({ page }) => {
+  await page.goto('/');
+  const topics = page.getByRole('tablist', { name: 'Physics topics' });
+
+  await topics.getByRole('tab', { name: 'Motion Diagrams' }).click();
+  const motionModule = page.getByRole('tabpanel', { name: 'Motion Diagrams' });
+  await motionModule.getByRole('button', { name: 'Reverse direction' }).click();
+  await motionModule.getByRole('button', { name: /Turn around/ }).click();
+  await expect(motionModule.getByText('Discovery complete')).toBeVisible();
+
+  await topics.getByRole('tab', { name: 'Relative Motion' }).click();
+  const relativeModule = page.getByRole('tabpanel', { name: 'Relative Motion' });
+  await expect(relativeModule.getByText('v⃗BG = v⃗BW + v⃗WG')).toBeVisible();
+  await relativeModule.getByLabel('Current speed').press('Home');
+  await relativeModule.getByRole('button', { name: /Remove frame motion/ }).click();
+  await expect(relativeModule.getByText('Discovery complete')).toBeVisible();
+
+  await topics.getByRole('tab', { name: 'Uniform Circular Motion' }).click();
+  const circularModule = page.getByRole('tabpanel', { name: 'Uniform Circular Motion' });
+  await circularModule.getByRole('button', { name: 'Clockwise' }).click();
+  await expect(circularModule.getByRole('img', { name: /Circular path with tangent velocity/ })).toBeVisible();
+
+  await circularModule.getByRole('tablist', { name: 'Learning mode' }).getByRole('tab', { name: 'Explain' }).click();
+  await expect(circularModule.getByRole('heading', { name: 'Constant speed can still mean acceleration' })).toBeVisible();
+  await circularModule.getByRole('tablist', { name: 'Learning mode' }).getByRole('tab', { name: 'Quiz' }).click();
+  await circularModule.getByRole('button', { name: 'Its velocity direction changes' }).click();
+  await expect(circularModule.getByRole('status')).toContainText('Correct');
 });
 
 test('translation walkthrough gates navigation and resumes saved progress', async ({ page }) => {

@@ -18,24 +18,25 @@ describe('application navigation', () => {
     expect(screen.getByLabelText('Coordinate preset')).toBeVisible();
   });
 
-  it('gives each placeholder topic reusable Explore, Explain, and Quiz tabs', () => {
+  it('gives each physics module reusable Explore, Explain, and Quiz tabs', () => {
     render(<App />);
 
     fireEvent.click(topLevelTabs().getByRole('tab', { name: 'Projectile Motion' }));
     const learningModes = within(screen.getByRole('tablist', { name: 'Learning mode' }));
 
     expect(learningModes.getAllByRole('tab')).toHaveLength(3);
-    expect(activeTopicPanel().getByText('Explore mode')).toBeVisible();
-    expect(activeTopicPanel().getByText('Content coming soon.')).toBeVisible();
+    expect(activeTopicPanel().getByRole('heading', { name: 'Projectile Motion Lab' })).toBeVisible();
+    expect(activeTopicPanel().getByLabelText('Launch speed')).toBeVisible();
 
     fireEvent.click(learningModes.getByRole('tab', { name: 'Quiz' }));
-    expect(activeTopicPanel().getByText('Quiz mode')).toBeVisible();
+    expect(activeTopicPanel().getByText(/At the highest point/)).toBeVisible();
 
     fireEvent.click(topLevelTabs().getByRole('tab', { name: 'Relative Motion' }));
-    expect(activeTopicPanel().getByText('Explore mode')).toBeVisible();
+    expect(activeTopicPanel().getByRole('heading', { name: 'Relative Motion Navigator' })).toBeVisible();
+    expect(activeTopicPanel().getByLabelText('Current speed')).toBeVisible();
 
     fireEvent.click(topLevelTabs().getByRole('tab', { name: 'Projectile Motion' }));
-    expect(activeTopicPanel().getByText('Quiz mode')).toBeVisible();
+    expect(activeTopicPanel().getByText(/At the highest point/)).toBeVisible();
   });
 
   it('preserves coordinate-system state while visiting another topic', () => {
@@ -62,6 +63,6 @@ describe('application navigation', () => {
       'aria-selected',
       'true',
     );
-    expect(activeTopicPanel().getByText('Content coming soon.')).toBeVisible();
+    expect(activeTopicPanel().getByRole('heading', { name: 'Projectile Motion Lab' })).toBeVisible();
   });
 });

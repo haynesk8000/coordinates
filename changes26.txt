@@ -1,0 +1,45 @@
+Using the specifications in **`plan.md`**, implement the following top-level tabs:
+
+* Projectile Motion
+* Motion Diagrams
+* Relative Motion
+* Uniform Circular Motion
+
+Use the **Coordinate Systems** tab as the reference implementation. While the educational content differs, the application should provide a consistent user experience across all modules.
+
+### Requirements
+
+1. **Maintain a consistent interface**
+
+   * Follow the same overall layout, navigation, visual design, and interaction patterns used in the Coordinate Systems tab.
+   * Users should immediately recognize that each module belongs to the same application.
+
+2. **Implement the planned content**
+
+   * Use the descriptions, purposes, key concepts, and learning outcomes defined in `plan.md` to guide the implementation of each module.
+   * Ensure that every feature supports the educational objectives documented in the plan.
+
+3. **Provide a consistent learning progression**
+
+   * Each module should follow the same instructional structure as Coordinate Systems, including equivalent learning stages (for example, concept introduction, guided exploration, walkthroughs, and interactive practice where appropriate).
+   * Adapt activities to the specific physics concepts of the module while preserving the overall learning experience.
+
+4. **Develop module-specific interactive content**
+
+   * Design interactive demonstrations, visualizations, and activities that are appropriate for each topic.
+   * The interactions should reinforce the key concepts through exploration and experimentation rather than passive presentation.
+
+5. **Maintain consistency across modules**
+
+   * Use the same design language, controls, terminology, animations, feedback mechanisms, progress tracking, and accessibility features wherever applicable.
+   * Students should not need to learn a new interface when moving between modules.
+
+6. **Implement modular, reusable code**
+
+   * Reuse existing UI components and architecture whenever practical.
+   * Create shared components for common functionality instead of duplicating code.
+   * Ensure the implementation is maintainable and extensible for future modules.
+
+### Goal
+
+Deliver four fully functional learning modules that provide the same high-quality, interactive experience as the Coordinate Systems module while teaching the unique concepts of Projectile Motion, Motion Diagrams, Relative Motion, and Uniform Circular Motion.

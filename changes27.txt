@@ -1,0 +1,59 @@
+Add a **Fun Zone** Level 2 tab to each of the following top-level modules:
+
+* Projectile Motion
+* Motion Diagrams
+* Relative Motion
+* Uniform Circular Motion
+
+Use the **Coordinate Systems → Fun Zone** implementation as the reference design. The goal is to provide a consistent experience across all modules while tailoring the activities to the concepts unique to each topic.
+
+### Requirements
+
+1. **Maintain a consistent user experience**
+
+   * Replicate the overall layout, navigation, visual style, and interaction patterns used in the Coordinate Systems Fun Zone.
+   * Students should immediately recognize the Fun Zone regardless of the module they are using.
+
+2. **Create five unique activities per module**
+
+   * Implement **five interactive activities** for each Fun Zone.
+   * Activities may include games, puzzles, timed challenges, simulations, or other engaging experiences.
+   * Avoid duplicating the exact gameplay from Coordinate Systems unless it naturally fits the topic.
+
+3. **Align activities with module concepts**
+
+   * Design each activity to reinforce the key concepts for its module.
+   * Activities should require students to apply their understanding rather than simply recall facts.
+   * Use the learning objectives defined in `plan.md` to guide activity design.
+
+4. **Include progression and replayability**
+
+   * Each activity should provide:
+
+     * Clear instructions
+     * Immediate feedback
+     * Scoring or measurable progress
+     * Replayability through randomized scenarios, increasing difficulty, or multiple solution paths
+
+5. **Implement adaptive difficulty**
+
+   * Use the same adaptive difficulty system implemented in the Coordinate Systems Fun Zone.
+   * Each activity begins at **0% difficulty**.
+   * Increase difficulty by **20%** after every **three correct responses**, up to a maximum of **100%**.
+   * Difficulty should scale appropriately for the specific activity by increasing complexity, precision, timing, or other relevant challenge parameters.
+
+6. **Reuse shared components**
+
+   * Reuse existing Fun Zone infrastructure wherever possible, including:
+
+     * Activity framework
+     * Progress tracking
+     * Difficulty management
+     * Scoring
+     * UI components
+     * Feedback mechanisms
+   * Create module-specific logic only where required by the content.
+
+### Goal
+
+Implement a Fun Zone for every learning module that delivers a consistent, polished, and engaging experience while providing activities specifically designed to reinforce the concepts of Projectile Motion, Motion Diagrams, Relative Motion, and Uniform Circular Motion through interactive gameplay.

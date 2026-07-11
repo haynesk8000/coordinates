@@ -1,6 +1,6 @@
 # Coordinate Kinematics Lab
 
-Interactive Vite + React + TypeScript site for learning coordinate-system descriptions of projectile motion. The app lets students move, rotate, flip, relabel, and swap coordinate axes while the physical projectile path stays fixed. A five-game Fun Zone adds randomized practice with plotting, coordinate reading, translations, rotations, and coordinate relationships. Each game automatically increases from 0% to 100% difficulty in 20% steps after every three correct answers.
+Interactive Vite + React + TypeScript site for learning coordinate systems, projectile motion, motion diagrams, relative motion, and uniform circular motion. Every module provides interactive Explore activities, guided Explain content, and immediate-feedback Quiz practice. The Coordinate Systems module also includes a five-game adaptive Fun Zone.
 
 ## Run
 
@@ -26,8 +26,8 @@ npm run build
 
 ## Project Shape
 
-- `src/physics`: vector math, projectile motion, coordinate projection, presets, symbolic equation formatting.
-- `src/components`: Explore, Explain, Quiz, Fun Zone, SVG scene, equation panel, controls.
+- `src/physics`: tested models for coordinate projection, projectiles, linear motion, relative velocity, and circular motion.
+- `src/components`: shared learning-module UI plus topic-specific Explore, Explain, Quiz, Fun Zone, SVG scenes, and controls.
 - `src/quiz`: question types, question bank, browser-local scoring.
 - `src/tests`: unit tests for the coordinate transformation engine.
 - `e2e`: Playwright checks for important UI interactions.

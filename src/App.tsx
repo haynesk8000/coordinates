@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { CircularMotionModule } from './components/CircularMotionModule';
 import { CoordinateSystemsModule } from './components/CoordinateSystemsModule';
-import { PlaceholderModule } from './components/PlaceholderModule';
+import { MotionDiagramsModule } from './components/MotionDiagramsModule';
+import { ProjectileMotionModule } from './components/ProjectileMotionModule';
+import { RelativeMotionModule } from './components/RelativeMotionModule';
 import {
   physicsTopics,
   topicPanelId,
@@ -11,6 +14,14 @@ import {
 
 function App() {
   const [topic, setTopic] = useState<PhysicsTopic>('coordinate-systems');
+
+  const renderModule = (topicId: PhysicsTopic) => {
+    if (topicId === 'coordinate-systems') return <CoordinateSystemsModule />;
+    if (topicId === 'projectile-motion') return <ProjectileMotionModule />;
+    if (topicId === 'motion-diagrams') return <MotionDiagramsModule />;
+    if (topicId === 'relative-motion') return <RelativeMotionModule />;
+    return <CircularMotionModule />;
+  };
 
   return (
     <div className="app-shell">
@@ -31,11 +42,7 @@ function App() {
             aria-labelledby={topicTabId(item.id)}
             hidden={topic !== item.id}
           >
-            {item.id === 'coordinate-systems' ? (
-              <CoordinateSystemsModule />
-            ) : (
-              <PlaceholderModule title={item.label} />
-            )}
+            {renderModule(item.id)}
           </section>
         ))}
       </main>
