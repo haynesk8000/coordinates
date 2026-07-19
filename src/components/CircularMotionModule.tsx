@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { CircleDot, Gauge, RotateCw } from 'lucide-react';
 import { circularMotionAtTime, formatPhysicsNumber, type CircularMotionInputs } from '../physics/learningModules';
-import { ConceptQuiz, ExplainView, GuidedChallenges, LearningModuleShell, MetricGrid, RangeControl, type ConceptQuestion, type CoreMode } from './LearningModuleShared';
+import { CircularMotionFunZone } from './funzone/CircularMotionFunZone';
+import { ConceptQuiz, ExplainView, LearningModuleShell, MetricGrid, RangeControl, type ConceptQuestion } from './LearningModuleShared';
+import type { Mode } from './ModeSwitcher';
+import { TopicWalkthrough, type WalkthroughStep } from './walkthroughs/TopicWalkthrough';
 
 const questions: ConceptQuestion[] = [
   { prompt: 'An object moves in a circle at constant speed. Why is it accelerating?', choices: ['Its velocity direction changes', 'Its speed must increase', 'Its mass changes', 'Its radius is zero'], answer: 'Its velocity direction changes', explanation: 'Velocity includes direction, so continuously turning means continuously changing velocity.', skill: 'velocity and acceleration' },
@@ -12,22 +15,25 @@ const questions: ConceptQuestion[] = [
 ];
 
 export function CircularMotionModule() {
-  const [mode, setMode] = useState<CoreMode>('explore');
+  const [mode, setMode] = useState<Mode>('explore');
   const [inputs, setInputs] = useState<CircularMotionInputs>({ radius: 4, angularSpeed: 1.2, direction: 1 });
   const [time, setTime] = useState(1.2);
   const modeCopy = {
     explore: 'Change radius, angular speed, direction, and time while watching tangent velocity and inward acceleration stay geometrically connected.',
     explain: 'Relate radians, period, tangential speed, and radial acceleration, then connect the equations to the moving vectors.',
     quiz: 'Test vector directions, angular relationships, proportional reasoning, and the meaning of centripetal force.',
+    fun: 'Apply v = ωr, T = 2π/ω, and aᵣ = ω²r under time pressure. Chase a high score or set your own difficulty.',
   };
-  return <LearningModuleShell eyebrow="Curved motion" title="Uniform Circular Motion Lab" intro={<>Constant speed does not mean constant velocity. <strong>The velocity turns continuously, so acceleration points inward.</strong></>} mode={mode} onModeChange={setMode} modeCopy={modeCopy}>
+  return <LearningModuleShell eyebrow="Curved motion" title="Uniform Circular Motion Lab" intro={<>Constant speed does not mean constant velocity. <strong>The velocity turns continuously, so acceleration points inward.</strong></>} mode={mode} onModeChange={setMode} modeCopy={modeCopy} includeFunZone>
     {mode === 'explore' && <CircularExplore inputs={inputs} onInputsChange={setInputs} time={time} onTimeChange={setTime} />}
     {mode === 'explain' && <CircularExplain inputs={inputs} time={time} />}
     {mode === 'quiz' && <ConceptQuiz moduleId="uniform-circular-motion" questions={questions} onReviewExplain={() => setMode('explain')} />}
+    {mode === 'fun' && <CircularMotionFunZone />}
   </LearningModuleShell>;
 }
 
 function CircularExplore({ inputs, onInputsChange, time, onTimeChange }: { inputs: CircularMotionInputs; onInputsChange: (inputs: CircularMotionInputs) => void; time: number; onTimeChange: (value: number) => void }) {
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const state = circularMotionAtTime(inputs, time);
   const center = { x: 350, y: 185 };
   const displayRadius = 55 + inputs.radius * 18;
@@ -35,8 +41,76 @@ function CircularExplore({ inputs, onInputsChange, time, onTimeChange }: { input
   const tangentUnit = { x: -inputs.direction * Math.sin(state.theta), y: -inputs.direction * Math.cos(state.theta) };
   const inwardUnit = { x: -Math.cos(state.theta), y: Math.sin(state.theta) };
   const normalizedAngle = ((state.theta % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-  return <div className="topic-explore-layout">
+  const walkthroughSteps: WalkthroughStep[] = [
+    {
+      type: 'concept',
+      title: "Constant Speed Isn't Constant Velocity",
+      body: 'Velocity has both a size and a direction. An object moving in a circle at a perfectly steady speed still has a constantly changing velocity, because its direction keeps turning. A changing velocity means there is acceleration, even though the speed never changes.',
+    },
+    {
+      type: 'task',
+      title: 'Reach a Quarter Turn',
+      instructions: ['Move the Time control until the object has traveled about one quarter of the way around the circle.', 'Watch how the velocity arrow rotates along with it.'],
+      hint: `A quarter turn occurs near t = ${formatPhysicsNumber((Math.PI / 2) / inputs.angularSpeed)} s.`,
+      observation: 'The velocity arrow has rotated 90° from where it started, even though its length — the speed — has not changed.',
+      explanation: 'The velocity vector stays tangent to the circle at every instant. As the object moves around the circle, that tangent direction continuously rotates.',
+      complete: Math.abs(normalizedAngle - Math.PI / 2) < 0.08,
+    },
+    {
+      type: 'check',
+      title: 'Check: Direction of Velocity',
+      prompt: 'At any instant, which direction does the velocity vector point relative to the radius line?',
+      choices: ['Tangent to the circle, perpendicular to the radius', 'Directly toward the center', 'Directly away from the center', 'Parallel to the radius'],
+      answer: 'Tangent to the circle, perpendicular to the radius',
+      explanation: 'Velocity is always tangent to the circular path, which makes it perpendicular to the radius line at every point.',
+    },
+    {
+      type: 'task',
+      title: 'Push the Inward Acceleration Higher',
+      instructions: ['Increase the Radius or the Angular speed.', 'Get the radial acceleration above 35 m/s² — check the Live Orbit panel.'],
+      hint: 'Angular speed has the biggest effect, since acceleration grows with its square.',
+      observation: 'A larger radius or a faster angular speed both increase how hard the object is being pulled toward the center.',
+      explanation: 'Radial acceleration is aᵣ = ω²r. Doubling the angular speed quadruples the acceleration, while doubling the radius only doubles it.',
+      complete: state.radialAcceleration > 35,
+    },
+    {
+      type: 'check',
+      title: 'Check: Proportional Reasoning',
+      prompt: 'If speed doubles while the radius stays fixed, the radial acceleration changes by what factor?',
+      choices: ['4', '2', '1/2', '8'],
+      answer: '4',
+      explanation: 'Since aᵣ = v²/r, doubling v multiplies the acceleration by 2² = 4.',
+    },
+    {
+      type: 'task',
+      title: 'Reverse the Orbit',
+      instructions: ['Switch the Direction control to clockwise.', 'Watch the velocity arrow flip while the inward acceleration arrow keeps pointing at the center.'],
+      hint: 'Use the Direction buttons under Orbit Controls.',
+      observation: 'The velocity arrow now points the opposite way along the circle, but the acceleration arrow still points straight at the center — its direction did not depend on which way the object was moving.',
+      explanation: 'Radial acceleration always points toward the center regardless of rotation direction, because it exists only to continuously redirect the velocity, not to change its magnitude.',
+      complete: inputs.direction === -1,
+    },
+    {
+      type: 'task',
+      title: 'Speed Up the Rotation',
+      instructions: ['Raise the Angular speed until the Period shown in Cycle Measures drops to about 2.9 seconds or less.', 'Notice how much faster the object completes each lap.'],
+      hint: 'Try an Angular speed of at least 2.2 rad/s.',
+      observation: 'A higher angular speed means a shorter period — each full revolution takes less time.',
+      explanation: 'Period and angular speed are inversely related: T = 2π/ω. As ω grows, T shrinks.',
+      complete: inputs.angularSpeed >= 2.2,
+    },
+    {
+      type: 'check',
+      title: 'Mastery Check',
+      prompt: 'A car rounds a curve at constant speed. What actually supplies the centripetal force that keeps it turning?',
+      choices: ['Friction between the tires and the road', 'A separate centripetal force pushing outward', "The car's engine power alone", 'Air resistance on the windshield'],
+      answer: 'Friction between the tires and the road',
+      explanation: 'Centripetal force is not a new force of its own — it is the name for whichever real force (here, tire friction) supplies the net inward push needed for circular motion.',
+    },
+  ];
+  return <div className={`topic-explore-layout ${walkthroughOpen ? 'walkthrough-active' : ''}`}>
     <div className="topic-main-column">
+      <TopicWalkthrough storageKey="physics-motion-lab-uniform-circular-motion-walkthrough-v1" label="Uniform Circular Motion" steps={walkthroughSteps} onOpenChange={setWalkthroughOpen} />
       <figure className="topic-simulation" aria-labelledby="circular-scene-caption">
         <svg viewBox="0 0 700 380" role="img" aria-label="Circular path with tangent velocity and inward acceleration vectors">
           <defs><marker id="circular-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" /></marker></defs>
@@ -63,11 +137,6 @@ function CircularExplore({ inputs, onInputsChange, time, onTimeChange }: { input
           <div className="direction-control"><span>Direction</span><div role="group" aria-label="Orbit direction"><button type="button" className={inputs.direction === 1 ? 'active' : ''} onClick={() => onInputsChange({ ...inputs, direction: 1 })}>Counterclockwise</button><button type="button" className={inputs.direction === -1 ? 'active' : ''} onClick={() => onInputsChange({ ...inputs, direction: -1 })}>Clockwise</button></div></div>
         </div>
       </section>
-      <GuidedChallenges challenges={[
-        { title: 'Quarter turn', prompt: 'Move time until the object is approximately one quarter revolution from its start.', hint: `A quarter turn occurs near t = ${formatPhysicsNumber((Math.PI / 2) / inputs.angularSpeed)} s.`, complete: Math.abs(normalizedAngle - Math.PI / 2) < 0.08 },
-        { title: 'Strong inward change', prompt: 'Create radial acceleration above 35 m/s².', hint: 'Acceleration grows with radius and with angular speed squared.', complete: state.radialAcceleration > 35 },
-        { title: 'Reverse the orbit', prompt: 'Switch to clockwise motion and watch the velocity reverse while acceleration remains inward.', hint: 'Use the Direction buttons.', complete: inputs.direction === -1 },
-      ]} />
     </div>
     <aside className="topic-side-column">
       <section className="panel"><div className="panel-title"><Gauge aria-hidden="true" size={20} /><h2>Live Orbit</h2></div><MetricGrid metrics={[

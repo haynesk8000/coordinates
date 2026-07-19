@@ -1,29 +1,29 @@
 import { useMemo, useState, type MouseEvent } from 'react';
+import { Crosshair, MoveRight, Radar, RotateCw, Sparkles } from 'lucide-react';
 import {
-  CheckCircle2,
-  Crosshair,
-  Gamepad2,
-  MoveRight,
-  Radar,
-  RefreshCw,
-  RotateCw,
-  Sparkles,
-  XCircle,
-} from 'lucide-react';
+  difficultyForStats,
+  feedbackWithProgress,
+  FunZoneHero,
+  GameSelectorNav,
+  GameShell,
+  FeedbackBanner,
+  levelFromDifficulty,
+  randomInt,
+  useFunZoneStats,
+  type DifficultyOverride,
+  type Feedback,
+  type GameMeta,
+  type Stats,
+} from './funzone/FunZoneShared';
+
+export { difficultyFromCorrect } from './funzone/FunZoneShared';
 
 type Point = { x: number; y: number };
 type GameId = 'plot' | 'read' | 'translate' | 'rotate' | 'relate';
-type Stats = { correct: number; attempts: number; streak: number };
-type Feedback = { correct: boolean; message: string; difficultyIncrease?: number };
 
-const games: Array<{
-  id: GameId;
-  title: string;
-  tagline: string;
-  skill: string;
-  icon: typeof Crosshair;
-  color: string;
-}> = [
+const gameIds: GameId[] = ['plot', 'read', 'translate', 'rotate', 'relate'];
+
+const games: Array<GameMeta<GameId>> = [
   { id: 'plot', title: 'Target Plotter', tagline: 'Hit the ordered pair', skill: 'Plotting points', icon: Crosshair, color: 'coral' },
   { id: 'read', title: 'Radar Reader', tagline: 'Decode the signal', skill: 'Reading coordinates', icon: Radar, color: 'blue' },
   { id: 'translate', title: 'Translation Trek', tagline: 'Move the rover', skill: 'Translation', icon: MoveRight, color: 'green' },
@@ -31,13 +31,8 @@ const games: Array<{
   { id: 'relate', title: 'Mirror Match', tagline: 'Spot the relationship', skill: 'Coordinate relationships', icon: Sparkles, color: 'gold' },
 ];
 
-const emptyStats = (): Stats => ({ correct: 0, attempts: 0, streak: 0 });
-export const difficultyFromCorrect = (correct: number) => Math.min(100, Math.floor(correct / 3) * 20);
-const difficultyLevel = (stats: Stats) => difficultyFromCorrect(stats.correct) / 20;
 const coordinateValuesForRange = (range: number) =>
   Array.from({ length: range * 2 + 1 }, (_, index) => index - range);
-const randomInt = (minimum: number, maximum: number) =>
-  Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
 const randomPoint = (range = 4, allowOrigin = true): Point => {
   let point = { x: randomInt(-range, range), y: randomInt(-range, range) };
   while (!allowOrigin && point.x === 0 && point.y === 0) {
@@ -65,51 +60,6 @@ function makePointChoices(answer: Point, range: number, count: number): Point[] 
     if (!unique.some((point) => samePoint(point, candidate))) unique.push(candidate);
   }
   return unique.slice(0, count).sort(() => Math.random() - 0.5);
-}
-
-function ScoreStrip({ stats }: { stats: Stats }) {
-  const accuracy = stats.attempts === 0 ? 0 : Math.round((stats.correct / stats.attempts) * 100);
-  const difficulty = difficultyFromCorrect(stats.correct);
-  const correctTowardNext = difficulty === 100 ? 3 : stats.correct % 3;
-  return (
-    <div className="fun-score-strip" aria-label="Game score">
-      <span><strong>{stats.correct}</strong> points</span>
-      <span><strong>{accuracy}%</strong> accuracy</span>
-      <span><strong>{stats.streak}</strong> streak</span>
-      <div className="fun-difficulty" aria-label={`Difficulty ${difficulty}%`}>
-        <div><strong>Difficulty {difficulty}%</strong><small>{difficulty === 100 ? 'Maximum level' : `${correctTowardNext}/3 correct to level up`}</small></div>
-        <progress max="100" value={difficulty} aria-label="Difficulty progress" />
-      </div>
-    </div>
-  );
-}
-
-function feedbackWithProgress(correct: boolean, message: string, stats: Stats): Feedback {
-  const currentDifficulty = difficultyFromCorrect(stats.correct);
-  const nextDifficulty = difficultyFromCorrect(stats.correct + (correct ? 1 : 0));
-  return {
-    correct,
-    message,
-    difficultyIncrease: nextDifficulty > currentDifficulty ? nextDifficulty : undefined,
-  };
-}
-
-function FeedbackBanner({ feedback, onNext }: { feedback: Feedback; onNext: () => void }) {
-  return (
-    <div className={`fun-feedback ${feedback.correct ? 'correct' : 'incorrect'}`} role="status">
-      {feedback.correct ? <CheckCircle2 aria-hidden="true" /> : <XCircle aria-hidden="true" />}
-      <div>
-        <strong>{feedback.correct ? 'Nice work!' : 'Good try!'}</strong>
-        <p>{feedback.message}</p>
-        {feedback.difficultyIncrease !== undefined && (
-          <p className="fun-level-up"><Sparkles aria-hidden="true" size={16} /> Difficulty increased to {feedback.difficultyIncrease}%!</p>
-        )}
-      </div>
-      <button type="button" onClick={onNext}>
-        <RefreshCw aria-hidden="true" size={17} /> Next challenge
-      </button>
-    </div>
-  );
 }
 
 function CoordinateGrid({
@@ -190,39 +140,10 @@ function CoordinateGrid({
   );
 }
 
-type ActivityProps = { stats: Stats; onResult: (correct: boolean) => void };
+type ActivityProps = { stats: Stats; override: DifficultyOverride; onResult: (correct: boolean) => void };
 
-function ActivityShell({
-  gameId,
-  stats,
-  instructions,
-  children,
-}: {
-  gameId: GameId;
-  stats: Stats;
-  instructions: string;
-  children: React.ReactNode;
-}) {
-  const game = games.find((item) => item.id === gameId)!;
-  const Icon = game.icon;
-  return (
-    <section className={`panel fun-activity fun-${game.color}`} aria-labelledby={`${gameId}-game-heading`}>
-      <div className="fun-activity-heading">
-        <div className="fun-game-icon"><Icon aria-hidden="true" /></div>
-        <div>
-          <p className="eyebrow">{game.skill}</p>
-          <h2 id={`${gameId}-game-heading`}>{game.title}</h2>
-        </div>
-      </div>
-      <p className="fun-instructions"><strong>How to play:</strong> {instructions}</p>
-      <ScoreStrip stats={stats} />
-      {children}
-    </section>
-  );
-}
-
-function TargetPlotter({ stats, onResult }: ActivityProps) {
-  const level = difficultyLevel(stats);
+function TargetPlotter({ stats, override, onResult }: ActivityProps) {
+  const level = levelFromDifficulty(difficultyForStats(stats, override));
   const range = 2 + level;
   const coordinateValues = coordinateValuesForRange(range);
   const [target, setTarget] = useState(() => randomPoint(range));
@@ -240,6 +161,7 @@ function TargetPlotter({ stats, onResult }: ActivityProps) {
         ? `Bullseye! You plotted ${pointLabel(target)}.`
         : `You chose ${pointLabel(point)}. The target was ${pointLabel(target)}: x first, then y.`,
       stats,
+      override,
     ));
   };
   const next = () => {
@@ -249,7 +171,7 @@ function TargetPlotter({ stats, onResult }: ActivityProps) {
   };
 
   return (
-    <ActivityShell gameId="plot" stats={stats} instructions="Plot the target ordered pair on the grid. Click the grid, or use the keyboard-friendly coordinate picker.">
+    <GameShell icon={Crosshair} color="coral" skill="Plotting points" title="Target Plotter" headingId="plot-game-heading" instructions="Plot the target ordered pair on the grid. Click the grid, or use the keyboard-friendly coordinate picker." stats={stats} difficulty={difficultyForStats(stats, override)} override={override}>
       <div className="fun-prompt" data-testid="plot-target">Plot <strong>{pointLabel(target)}</strong> <small>Range: −{range} to {range}</small></div>
       <div className="fun-play-grid">
         <CoordinateGrid range={range} interactive={!feedback} selected={selected} onSelect={submit} ariaLabel={`Blank coordinate grid from negative ${range} to ${range}. Plot ${pointLabel(target)}.`} />
@@ -264,12 +186,12 @@ function TargetPlotter({ stats, onResult }: ActivityProps) {
         </div>
       </div>
       {feedback && <FeedbackBanner feedback={feedback} onNext={next} />}
-    </ActivityShell>
+    </GameShell>
   );
 }
 
-function RadarReader({ stats, onResult }: ActivityProps) {
-  const level = difficultyLevel(stats);
+function RadarReader({ stats, override, onResult }: ActivityProps) {
+  const level = levelFromDifficulty(difficultyForStats(stats, override));
   const range = 2 + level;
   const choiceCount = 3 + Math.floor(level / 2);
   const [point, setPoint] = useState(() => randomPoint(range, false));
@@ -279,11 +201,11 @@ function RadarReader({ stats, onResult }: ActivityProps) {
     if (feedback) return;
     const correct = samePoint(choice, point);
     onResult(correct);
-    setFeedback(feedbackWithProgress(correct, correct ? `Signal decoded: ${pointLabel(point)}.` : `That was ${pointLabel(choice)}. Read x horizontally and y vertically; the signal is ${pointLabel(point)}.`, stats));
+    setFeedback(feedbackWithProgress(correct, correct ? `Signal decoded: ${pointLabel(point)}.` : `That was ${pointLabel(choice)}. Read x horizontally and y vertically; the signal is ${pointLabel(point)}.`, stats, override));
   };
   const next = () => { setPoint(randomPoint(range, false)); setFeedback(null); };
   return (
-    <ActivityShell gameId="read" stats={stats} instructions="Read the glowing signal on the grid and choose its ordered pair.">
+    <GameShell icon={Radar} color="blue" skill="Reading coordinates" title="Radar Reader" headingId="read-game-heading" instructions="Read the glowing signal on the grid and choose its ordered pair." stats={stats} difficulty={difficultyForStats(stats, override)} override={override}>
       <div className="fun-prompt">What coordinates is the radar signal marking? <small>{choiceCount} answer choices • range ±{range}</small></div>
       <div className="fun-play-grid">
         <CoordinateGrid range={range} points={[{ point, label: '?' }]} ariaLabel="Coordinate grid with one radar signal to identify." />
@@ -292,7 +214,7 @@ function RadarReader({ stats, onResult }: ActivityProps) {
         </div>
       </div>
       {feedback && <FeedbackBanner feedback={feedback} onNext={next} />}
-    </ActivityShell>
+    </GameShell>
   );
 }
 
@@ -319,8 +241,8 @@ const makeTranslation = (level: number): TranslationChallenge => {
   return { start, moves, answer: current, range };
 };
 
-function TranslationTrek({ stats, onResult }: ActivityProps) {
-  const level = difficultyLevel(stats);
+function TranslationTrek({ stats, override, onResult }: ActivityProps) {
+  const level = levelFromDifficulty(difficultyForStats(stats, override));
   const choiceCount = 3 + Math.floor(level / 2);
   const [challenge, setChallenge] = useState(() => makeTranslation(level));
   const choices = useMemo(() => makePointChoices(challenge.answer, challenge.range, choiceCount), [challenge, choiceCount]);
@@ -330,11 +252,11 @@ function TranslationTrek({ stats, onResult }: ActivityProps) {
     const correct = samePoint(choice, challenge.answer);
     onResult(correct);
     const totalMove = challenge.moves.reduce((total, move) => ({ x: total.x + move.x, y: total.y + move.y }), { x: 0, y: 0 });
-    setFeedback(feedbackWithProgress(correct, correct ? `The rover arrived at ${pointLabel(challenge.answer)}.` : `Combine the moves to get a total translation of (${totalMove.x}, ${totalMove.y}), then add it to ${pointLabel(challenge.start)}. The destination is ${pointLabel(challenge.answer)}.`, stats));
+    setFeedback(feedbackWithProgress(correct, correct ? `The rover arrived at ${pointLabel(challenge.answer)}.` : `Combine the moves to get a total translation of (${totalMove.x}, ${totalMove.y}), then add it to ${pointLabel(challenge.start)}. The destination is ${pointLabel(challenge.answer)}.`, stats, override));
   };
   const next = () => { setChallenge(makeTranslation(level)); setFeedback(null); };
   return (
-    <ActivityShell gameId="translate" stats={stats} instructions="Guide the rover by applying every translation vector in order to its starting coordinates.">
+    <GameShell icon={MoveRight} color="green" skill="Translation" title="Translation Trek" headingId="translate-game-heading" instructions="Guide the rover by applying every translation vector in order to its starting coordinates." stats={stats} difficulty={difficultyForStats(stats, override)} override={override}>
       <div className="fun-prompt">Start at <strong>{pointLabel(challenge.start)}</strong>, then move {challenge.moves.map((move, index) => <strong key={`${move.x}-${move.y}-${index}`}>⟨{move.x}, {move.y}⟩{index < challenge.moves.length - 1 ? ', then ' : ''}</strong>)}. Where do you land? <small>{challenge.moves.length} step{challenge.moves.length === 1 ? '' : 's'} • range ±{challenge.range}</small></div>
       <div className="fun-play-grid">
         <CoordinateGrid range={challenge.range} points={[{ point: challenge.start, label: 'START', tone: 'secondary' }]} ariaLabel={`Rover starts at ${pointLabel(challenge.start)} and has ${challenge.moves.length} translation steps.`} />
@@ -343,7 +265,7 @@ function TranslationTrek({ stats, onResult }: ActivityProps) {
         </div>
       </div>
       {feedback && <FeedbackBanner feedback={feedback} onNext={next} />}
-    </ActivityShell>
+    </GameShell>
   );
 }
 
@@ -367,8 +289,8 @@ const makeRotation = (level: number): RotationChallenge => {
   return { point, clockwise, angle, translation, answer, range };
 };
 
-function RotationReactor({ stats, onResult }: ActivityProps) {
-  const level = difficultyLevel(stats);
+function RotationReactor({ stats, override, onResult }: ActivityProps) {
+  const level = levelFromDifficulty(difficultyForStats(stats, override));
   const choiceCount = 3 + Math.floor(level / 2);
   const [challenge, setChallenge] = useState(() => makeRotation(level));
   const choices = useMemo(() => makePointChoices(challenge.answer, challenge.range, choiceCount), [challenge, choiceCount]);
@@ -378,11 +300,11 @@ function RotationReactor({ stats, onResult }: ActivityProps) {
     const correct = samePoint(choice, challenge.answer);
     onResult(correct);
     const extraStep = challenge.translation ? ` Then apply the translation (${challenge.translation.x}, ${challenge.translation.y}).` : '';
-    setFeedback(feedbackWithProgress(correct, correct ? `Perfect transformation! The new point is ${pointLabel(challenge.answer)}.` : `Rotate ${challenge.angle}° ${challenge.clockwise ? 'clockwise' : 'counterclockwise'}.${extraStep} The answer is ${pointLabel(challenge.answer)}.`, stats));
+    setFeedback(feedbackWithProgress(correct, correct ? `Perfect transformation! The new point is ${pointLabel(challenge.answer)}.` : `Rotate ${challenge.angle}° ${challenge.clockwise ? 'clockwise' : 'counterclockwise'}.${extraStep} The answer is ${pointLabel(challenge.answer)}.`, stats, override));
   };
   const next = () => { setChallenge(makeRotation(level)); setFeedback(null); };
   return (
-    <ActivityShell gameId="rotate" stats={stats} instructions="Rotate the energy crystal around the origin, then complete any extra transformation shown.">
+    <GameShell icon={RotateCw} color="purple" skill="Rotation" title="Rotation Reactor" headingId="rotate-game-heading" instructions="Rotate the energy crystal around the origin, then complete any extra transformation shown." stats={stats} difficulty={difficultyForStats(stats, override)} override={override}>
       <div className="fun-prompt">Rotate <strong>{pointLabel(challenge.point)}</strong> <strong>{challenge.angle}° {challenge.clockwise ? 'clockwise' : 'counterclockwise'}</strong>{challenge.translation && <>, then translate by <strong>⟨{challenge.translation.x}, {challenge.translation.y}⟩</strong></>}. <small>{choiceCount} choices • range ±{challenge.range}</small></div>
       <div className="fun-play-grid">
         <CoordinateGrid range={challenge.range} points={[{ point: challenge.point, label: 'CRYSTAL' }]} ariaLabel={`Point ${pointLabel(challenge.point)} before a ${challenge.angle} degree ${challenge.clockwise ? 'clockwise' : 'counterclockwise'} rotation.`} />
@@ -391,7 +313,7 @@ function RotationReactor({ stats, onResult }: ActivityProps) {
         </div>
       </div>
       {feedback && <FeedbackBanner feedback={feedback} onNext={next} />}
-    </ActivityShell>
+    </GameShell>
   );
 }
 
@@ -425,8 +347,8 @@ const makeRelationship = (level: number): RelationshipChallenge => {
   return { first, second, answer, range };
 };
 
-function MirrorMatch({ stats, onResult }: ActivityProps) {
-  const level = difficultyLevel(stats);
+function MirrorMatch({ stats, override, onResult }: ActivityProps) {
+  const level = levelFromDifficulty(difficultyForStats(stats, override));
   const availableRelationships = relationships.slice(0, level + 2);
   const [challenge, setChallenge] = useState(() => makeRelationship(level));
   const [feedback, setFeedback] = useState<Feedback | null>(null);
@@ -434,11 +356,11 @@ function MirrorMatch({ stats, onResult }: ActivityProps) {
     if (feedback) return;
     const correct = choice === challenge.answer;
     onResult(correct);
-    setFeedback(feedbackWithProgress(correct, correct ? `You spotted it: ${challenge.answer.toLowerCase()}.` : `Compare one coordinate at a time. These are ${challenge.answer.toLowerCase()}.`, stats));
+    setFeedback(feedbackWithProgress(correct, correct ? `You spotted it: ${challenge.answer.toLowerCase()}.` : `Compare one coordinate at a time. These are ${challenge.answer.toLowerCase()}.`, stats, override));
   };
   const next = () => { setChallenge(makeRelationship(level)); setFeedback(null); };
   return (
-    <ActivityShell gameId="relate" stats={stats} instructions="Compare points A and B. Choose the relationship that connects their coordinates.">
+    <GameShell icon={Sparkles} color="gold" skill="Coordinate relationships" title="Mirror Match" headingId="relate-game-heading" instructions="Compare points A and B. Choose the relationship that connects their coordinates." stats={stats} difficulty={difficultyForStats(stats, override)} override={override}>
       <div className="fun-prompt">{level >= 4 ? <>How are the plotted points <strong>A</strong> and <strong>B</strong> related?</> : <>How are <strong>A {pointLabel(challenge.first)}</strong> and <strong>B {pointLabel(challenge.second)}</strong> related?</>} <small>{availableRelationships.length} possible relationships • range ±{challenge.range}</small></div>
       <div className="fun-play-grid">
         <CoordinateGrid range={challenge.range} points={[{ point: challenge.first, label: 'A' }, { point: challenge.second, label: 'B', tone: 'secondary' }]} ariaLabel={`Point A is ${pointLabel(challenge.first)} and point B is ${pointLabel(challenge.second)}.`} />
@@ -447,54 +369,30 @@ function MirrorMatch({ stats, onResult }: ActivityProps) {
         </div>
       </div>
       {feedback && <FeedbackBanner feedback={feedback} onNext={next} />}
-    </ActivityShell>
+    </GameShell>
   );
 }
 
 export function FunZoneMode() {
   const [activeGame, setActiveGame] = useState<GameId>('plot');
-  const [allStats, setAllStats] = useState<Record<GameId, Stats>>(() => ({
-    plot: emptyStats(), read: emptyStats(), translate: emptyStats(), rotate: emptyStats(), relate: emptyStats(),
-  }));
-  const recordResult = (gameId: GameId, correct: boolean) => {
-    setAllStats((current) => ({
-      ...current,
-      [gameId]: {
-        correct: current[gameId].correct + (correct ? 1 : 0),
-        attempts: current[gameId].attempts + 1,
-        streak: correct ? current[gameId].streak + 1 : 0,
-      },
-    }));
-  };
-  const totalCorrect = Object.values(allStats).reduce((total, stats) => total + stats.correct, 0);
-  const totalAttempts = Object.values(allStats).reduce((total, stats) => total + stats.attempts, 0);
-  const activityProps = (id: GameId) => ({ stats: allStats[id], onResult: (correct: boolean) => recordResult(id, correct) });
+  const [override, setOverride] = useState<DifficultyOverride>('auto');
+  const { allStats, recordResult } = useFunZoneStats('coordinate-funzone-stats-v1', gameIds);
+  const totalCorrect = Object.values(allStats).reduce((total, stats) => total + (stats as Stats).correct, 0);
+  const totalAttempts = Object.values(allStats).reduce((total, stats) => total + (stats as Stats).attempts, 0);
+  const activityProps = (id: GameId): ActivityProps => ({ stats: allStats[id], override, onResult: (correct: boolean) => recordResult(id, correct) });
 
   return (
     <div className="fun-zone-layout">
-      <section className="fun-zone-hero" aria-labelledby="fun-zone-heading">
-        <div>
-          <p className="eyebrow">Coordinate Arcade • 5 games</p>
-          <h2 id="fun-zone-heading"><Gamepad2 aria-hidden="true" /> Choose your next challenge</h2>
-          <p>Every game starts at 0% difficulty and levels up by 20% after every three correct answers. Build your skills all the way to 100%.</p>
-        </div>
-        <div className="fun-total-score" aria-label={`${totalCorrect} total points from ${totalAttempts} attempts`}>
-          <strong>{totalCorrect}</strong><span>Total points</span><small>{totalAttempts} attempts</small>
-        </div>
-      </section>
+      <FunZoneHero
+        eyebrow="Coordinate Arcade • 5 games"
+        totalCorrect={totalCorrect}
+        totalAttempts={totalAttempts}
+        description="Every game starts at 0% difficulty and levels up by 20% after every three correct answers, or pick a fixed difficulty yourself. Your best streaks are saved in this browser."
+        override={override}
+        onOverrideChange={setOverride}
+      />
 
-      <nav className="fun-game-selector" aria-label="Fun Zone activities">
-        {games.map((game) => {
-          const Icon = game.icon;
-          return (
-            <button key={game.id} type="button" className={`${game.color}${activeGame === game.id ? ' active' : ''}`} aria-pressed={activeGame === game.id} onClick={() => setActiveGame(game.id)}>
-              <span className="fun-selector-icon"><Icon aria-hidden="true" /></span>
-              <span><strong>{game.title}</strong><small>{game.tagline}</small></span>
-              <span className="fun-mini-score">{allStats[game.id].correct} pts • {difficultyFromCorrect(allStats[game.id].correct)}%</span>
-            </button>
-          );
-        })}
-      </nav>
+      <GameSelectorNav games={games} activeGame={activeGame} onSelect={setActiveGame} allStats={allStats} />
 
       {activeGame === 'plot' && <TargetPlotter {...activityProps('plot')} />}
       {activeGame === 'read' && <RadarReader {...activityProps('read')} />}

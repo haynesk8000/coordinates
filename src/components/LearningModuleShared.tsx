@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { CheckCircle2, Circle, Compass, FlaskConical, GraduationCap, Lightbulb, RotateCcw, XCircle } from 'lucide-react';
+import { CheckCircle2, Compass, FlaskConical, Gamepad2, GraduationCap, RotateCcw, XCircle } from 'lucide-react';
 import { ModeSwitcher, type Mode } from './ModeSwitcher';
 
 export type CoreMode = Exclude<Mode, 'fun'>;
 
-const modeIcons = { explore: Compass, explain: GraduationCap, quiz: FlaskConical } as const;
+const modeIcons = { explore: Compass, explain: GraduationCap, quiz: FlaskConical, fun: Gamepad2 } as const;
 
 export function LearningModuleShell({
   eyebrow,
@@ -13,14 +13,16 @@ export function LearningModuleShell({
   mode,
   onModeChange,
   modeCopy,
+  includeFunZone = false,
   children,
 }: {
   eyebrow: string;
   title: string;
   intro: ReactNode;
-  mode: CoreMode;
-  onModeChange: (mode: CoreMode) => void;
-  modeCopy: Record<CoreMode, string>;
+  mode: Mode;
+  onModeChange: (mode: Mode) => void;
+  modeCopy: Partial<Record<Mode, string>>;
+  includeFunZone?: boolean;
   children: ReactNode;
 }) {
   const Icon = modeIcons[mode];
@@ -31,7 +33,7 @@ export function LearningModuleShell({
           <p className="eyebrow">{eyebrow}</p>
           <h2 className="module-title">{title}</h2>
         </div>
-        <ModeSwitcher mode={mode} onChange={(nextMode) => nextMode !== 'fun' && onModeChange(nextMode)} />
+        <ModeSwitcher mode={mode} onChange={onModeChange} includeFunZone={includeFunZone} />
       </header>
       <section className="intro-band topic-intro" aria-live="polite">
         <Icon aria-hidden="true" size={22} />
@@ -42,44 +44,6 @@ export function LearningModuleShell({
         {children}
       </div>
     </>
-  );
-}
-
-export type GuidedChallenge = {
-  title: string;
-  prompt: string;
-  hint: string;
-  complete: boolean;
-};
-
-export function GuidedChallenges({ challenges }: { challenges: GuidedChallenge[] }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const completed = challenges.filter((challenge) => challenge.complete).length;
-  const active = challenges[activeIndex];
-  return (
-    <section className="panel guided-challenges" aria-labelledby="guided-challenges-heading">
-      <div className="panel-title">
-        <Lightbulb aria-hidden="true" size={20} />
-        <h2 id="guided-challenges-heading">Guided Challenges</h2>
-      </div>
-      <div className="challenge-progress">
-        <span>{completed} of {challenges.length} discoveries</span>
-        <progress max={challenges.length} value={completed} aria-label="Guided challenge progress" />
-      </div>
-      <div className="challenge-tabs" role="group" aria-label="Guided challenges">
-        {challenges.map((challenge, index) => (
-          <button key={challenge.title} type="button" className={activeIndex === index ? 'active' : ''} onClick={() => setActiveIndex(index)}>
-            {challenge.complete ? <CheckCircle2 aria-hidden="true" size={17} /> : <Circle aria-hidden="true" size={17} />}
-            {challenge.title}
-          </button>
-        ))}
-      </div>
-      <div className={`challenge-detail${active.complete ? ' complete' : ''}`} role="status">
-        <strong>{active.complete ? 'Discovery complete' : active.title}</strong>
-        <p>{active.prompt}</p>
-        {!active.complete && <small>Hint: {active.hint}</small>}
-      </div>
-    </section>
   );
 }
 

@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { Trophy } from 'lucide-react';
 import { CircularMotionModule } from './components/CircularMotionModule';
 import { CoordinateSystemsModule } from './components/CoordinateSystemsModule';
 import { MotionDiagramsModule } from './components/MotionDiagramsModule';
+import { ProgressDashboard } from './components/ProgressDashboard';
 import { ProjectileMotionModule } from './components/ProjectileMotionModule';
 import { RelativeMotionModule } from './components/RelativeMotionModule';
 import {
@@ -14,6 +16,7 @@ import {
 
 function App() {
   const [topic, setTopic] = useState<PhysicsTopic>('coordinate-systems');
+  const [showProgress, setShowProgress] = useState(false);
 
   const renderModule = (topicId: PhysicsTopic) => {
     if (topicId === 'coordinate-systems') return <CoordinateSystemsModule />;
@@ -26,9 +29,16 @@ function App() {
   return (
     <div className="app-shell">
       <header className="site-header">
-        <p className="eyebrow">Interactive Physics</p>
-        <h1>Physics Motion Lab</h1>
+        <div>
+          <p className="eyebrow">Interactive Physics</p>
+          <h1>Physics Motion Lab</h1>
+        </div>
+        <button type="button" className="progress-toggle" aria-expanded={showProgress} onClick={() => setShowProgress((current) => !current)}>
+          <Trophy aria-hidden="true" size={18} /> {showProgress ? 'Hide my progress' : 'My progress'}
+        </button>
       </header>
+
+      {showProgress && <ProgressDashboard />}
 
       <TopicSwitcher topic={topic} onChange={setTopic} />
 
@@ -38,6 +48,7 @@ function App() {
             key={item.id}
             id={topicPanelId(item.id)}
             className="topic-panel"
+            data-topic={item.id}
             role="tabpanel"
             aria-labelledby={topicTabId(item.id)}
             hidden={topic !== item.id}

@@ -1,16 +1,17 @@
 import { useMemo, useState } from 'react';
 import { Activity, Gauge, Timer } from 'lucide-react';
 import { formatPhysicsNumber, projectileAtTime, projectileFlightTime, type ProjectileInputs } from '../physics/learningModules';
+import { ProjectileFunZone } from './funzone/ProjectileFunZone';
 import {
   ConceptQuiz,
   ExplainView,
-  GuidedChallenges,
   LearningModuleShell,
   MetricGrid,
   RangeControl,
   type ConceptQuestion,
-  type CoreMode,
 } from './LearningModuleShared';
+import type { Mode } from './ModeSwitcher';
+import { TopicWalkthrough, type WalkthroughStep } from './walkthroughs/TopicWalkthrough';
 
 const questions: ConceptQuestion[] = [
   { prompt: 'At the highest point of a projectile path, which statement is correct?', choices: ['Velocity and acceleration are both zero', 'Vertical velocity is zero; acceleration is downward', 'Acceleration is horizontal', 'Horizontal velocity is zero'], answer: 'Vertical velocity is zero; acceleration is downward', explanation: 'Gravity continues to act at the top. Only the vertical velocity component is momentarily zero.', skill: 'vectors' },
@@ -21,7 +22,7 @@ const questions: ConceptQuestion[] = [
 ];
 
 export function ProjectileMotionModule() {
-  const [mode, setMode] = useState<CoreMode>('explore');
+  const [mode, setMode] = useState<Mode>('explore');
   const [inputs, setInputs] = useState<ProjectileInputs>({ speed: 18, angleDegrees: 42, gravity: 9.8, initialHeight: 4 });
   const [progress, setProgress] = useState(35);
   const flightTime = projectileFlightTime(inputs);
@@ -32,6 +33,7 @@ export function ProjectileMotionModule() {
     explore: 'Change the launch and scrub through time. The path, vectors, component values, and graphs all come from the same physical model.',
     explain: 'Build projectile equations from the initial conditions: choose axes, resolve velocity, apply gravity, and check the result against the path.',
     quiz: 'Reason from vectors, components, assumptions, and graphs. Feedback identifies the specific idea behind every answer.',
+    fun: 'Predict landing distances and read velocity vectors. Chase a high score or dial in your own difficulty.',
   };
 
   return (
@@ -42,10 +44,12 @@ export function ProjectileMotionModule() {
       mode={mode}
       onModeChange={setMode}
       modeCopy={modeCopy}
+      includeFunZone
     >
       {mode === 'explore' && <ProjectileExplore inputs={inputs} onInputsChange={setInputs} progress={progress} onProgressChange={setProgress} />}
       {mode === 'explain' && <ProjectileExplain inputs={inputs} time={time} />}
       {mode === 'quiz' && <ConceptQuiz moduleId="projectile-motion" questions={questions} onReviewExplain={() => setMode('explain')} />}
+      {mode === 'fun' && <ProjectileFunZone />}
     </LearningModuleShell>
   );
 }
@@ -56,6 +60,7 @@ function ProjectileExplore({ inputs, onInputsChange, progress, onProgressChange 
   progress: number;
   onProgressChange: (value: number) => void;
 }) {
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const flightTime = projectileFlightTime(inputs);
   const time = (progress / 100) * flightTime;
   const state = projectileAtTime(inputs, time);
@@ -68,10 +73,80 @@ function ProjectileExplore({ inputs, onInputsChange, progress, onProgressChange 
   const pointX = mapX(state.position.x);
   const pointY = mapY(Math.max(0, state.position.y));
   const apexTime = (inputs.speed * Math.sin((inputs.angleDegrees * Math.PI) / 180)) / inputs.gravity;
+  const range = projectileAtTime(inputs, flightTime).position.x;
+
+  const walkthroughSteps: WalkthroughStep[] = [
+    {
+      type: 'concept',
+      title: 'Two Independent Motions',
+      body: "A projectile's horizontal and vertical motions happen at the same time but obey different rules. Horizontal velocity stays constant because gravity has no horizontal component. Vertical velocity changes at a constant rate because gravity pulls straight down. Both share the same clock: whatever time you pick describes both components at once.",
+    },
+    {
+      type: 'task',
+      title: 'Launch Flat',
+      instructions: ['Set the launch angle to 0°.', 'Watch the path in the scene as the projectile falls.'],
+      hint: 'Move the Launch angle slider all the way to the left.',
+      observation: 'Even with no upward angle, the object still traces a curved path downward instead of flying in a straight line.',
+      explanation: "Gravity acts on the vertical component regardless of the launch angle. A flat launch removes the initial vertical velocity, but it can't remove gravity's constant downward acceleration.",
+      complete: inputs.angleDegrees === 0,
+    },
+    {
+      type: 'task',
+      title: 'Find the Apex',
+      instructions: ['Drag the Flight progress slider until the vertical velocity is nearly zero.', 'Check the Live Components panel to confirm.'],
+      hint: 'Watch v_y in the Live Components panel — it should read close to 0 m/s.',
+      observation: 'At that instant the object is momentarily moving purely horizontally: it has stopped rising but has not started falling yet.',
+      explanation: 'The apex is where vertical velocity crosses zero. Horizontal velocity is unaffected and keeps its original value the whole flight.',
+      complete: Math.abs(time - apexTime) < Math.max(0.08, flightTime * 0.035),
+    },
+    {
+      type: 'check',
+      title: 'Check: At the Apex',
+      prompt: 'At the apex, which statement is true?',
+      choices: ['Horizontal velocity is nonzero; vertical velocity is momentarily zero', 'Both velocity components are zero', 'Horizontal velocity is zero; vertical velocity is at its maximum', 'Acceleration is zero'],
+      answer: 'Horizontal velocity is nonzero; vertical velocity is momentarily zero',
+      explanation: 'Only the vertical component of velocity passes through zero at the apex. Gravity keeps acting throughout the entire flight, so acceleration is never zero in this model.',
+    },
+    {
+      type: 'task',
+      title: 'Extend the Range',
+      instructions: ['Adjust the launch speed and angle together.', 'Try to get the horizontal range above 45 m — check the Flight Summary panel.'],
+      hint: 'Angles nearer 45° combined with higher speed tend to produce the longest range.',
+      observation: 'Range grows fastest when you increase speed, since range depends on speed squared, and is maximized (for a given speed) near a 45° angle.',
+      explanation: 'Horizontal range comes from how long the object is airborne multiplied by its constant horizontal velocity. Both flight time and horizontal speed increase your range, but they trade off against each other as the angle changes.',
+      complete: range > 45,
+    },
+    {
+      type: 'task',
+      title: 'Raise the Ceiling',
+      instructions: ['Increase the launch angle to 60° or steeper.', 'Notice how much higher the peak of the path becomes.'],
+      hint: 'Move the Launch angle slider to the right, past 60°.',
+      observation: 'A steeper launch angle trades horizontal range for maximum height — the same speed sends the object much higher.',
+      explanation: 'Maximum height depends on the vertical component of the initial velocity: v0 sin(θ). Larger angles increase sin(θ), which raises the peak even though it shortens the horizontal reach.',
+      complete: inputs.angleDegrees >= 60,
+    },
+    {
+      type: 'check',
+      title: 'Check: Angle and Range',
+      prompt: 'Keeping launch speed fixed, increasing the angle from 20° toward 45° generally does what to horizontal range?',
+      choices: ['Increases the range', 'Decreases the range', 'Has no effect on the range', 'Makes the object fall straight down'],
+      answer: 'Increases the range',
+      explanation: 'Range is proportional to sin(2θ), which increases as θ approaches 45° from below.',
+    },
+    {
+      type: 'check',
+      title: 'Mastery Check',
+      prompt: "Which everyday example best matches the idealized 'no air resistance' projectile motion model used here?",
+      choices: ['A cannonball fired across an open field', 'A paper airplane gliding across a room', 'A feather dropped from a table', 'A rocket under continuous engine thrust'],
+      answer: 'A cannonball fired across an open field',
+      explanation: 'A dense, compact object over a short flight is dominated by gravity, matching this model. Paper airplanes and feathers are shaped by air resistance, and a thrusting rocket has forces beyond gravity acting on it.',
+    },
+  ];
 
   return (
-    <div className="topic-explore-layout">
+    <div className={`topic-explore-layout ${walkthroughOpen ? 'walkthrough-active' : ''}`}>
       <div className="topic-main-column">
+        <TopicWalkthrough storageKey="physics-motion-lab-projectile-motion-walkthrough-v1" label="Projectile Motion" steps={walkthroughSteps} onOpenChange={setWalkthroughOpen} />
         <figure className="topic-simulation" aria-labelledby="projectile-scene-caption">
           <svg viewBox="0 0 720 380" role="img" aria-label="Projectile trajectory with current velocity and downward acceleration vectors">
             <defs><marker id="projectile-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" /></marker></defs>
@@ -98,11 +173,6 @@ function ProjectileExplore({ inputs, onInputsChange, progress, onProgressChange 
           </div>
           <RangeControl label="Flight progress" value={progress} min={0} max={100} step={1} unit="%" onChange={onProgressChange} />
         </section>
-        <GuidedChallenges challenges={[
-          { title: 'Horizontal launch', prompt: 'Set the launch angle to 0°. Notice that gravity still curves the path downward.', hint: 'Move the Launch angle slider all the way left.', complete: inputs.angleDegrees === 0 },
-          { title: 'Catch the apex', prompt: 'Move the time control to the instant when vertical velocity is nearly zero.', hint: 'Watch v_y in the live measurements.', complete: Math.abs(time - apexTime) < Math.max(0.08, flightTime * 0.035) },
-          { title: 'Stronger gravity', prompt: 'Raise gravity above 15 m/s² and observe the shorter, tighter arc.', hint: 'Increase the Gravity slider.', complete: inputs.gravity >= 15 },
-        ]} />
       </div>
       <aside className="topic-side-column">
         <section className="panel">

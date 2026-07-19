@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Activity, Clock3, Waypoints } from 'lucide-react';
 import { formatPhysicsNumber, linearMotionAtTime, type LinearMotionInputs } from '../physics/learningModules';
-import { ConceptQuiz, ExplainView, GuidedChallenges, LearningModuleShell, MetricGrid, RangeControl, type ConceptQuestion, type CoreMode } from './LearningModuleShared';
+import { MotionDiagramFunZone } from './funzone/MotionDiagramFunZone';
+import { ConceptQuiz, ExplainView, LearningModuleShell, MetricGrid, RangeControl, type ConceptQuestion } from './LearningModuleShared';
+import type { Mode } from './ModeSwitcher';
+import { TopicWalkthrough, type WalkthroughStep } from './walkthroughs/TopicWalkthrough';
 
 const questions: ConceptQuestion[] = [
   { prompt: 'Dots are recorded at equal time intervals and get farther apart. What does that show?', choices: ['Speed is increasing', 'Time intervals are increasing', 'Acceleration is zero', 'The object is at rest'], answer: 'Speed is increasing', explanation: 'More distance covered during each equal interval means a greater speed.', skill: 'dot spacing' },
@@ -12,7 +15,7 @@ const questions: ConceptQuestion[] = [
 ];
 
 export function MotionDiagramsModule() {
-  const [mode, setMode] = useState<CoreMode>('explore');
+  const [mode, setMode] = useState<Mode>('explore');
   const [inputs, setInputs] = useState<LinearMotionInputs>({ initialPosition: 0, initialVelocity: 2, acceleration: 0 });
   const [interval, setInterval] = useState(0.8);
   const [focusIndex, setFocusIndex] = useState(4);
@@ -20,17 +23,20 @@ export function MotionDiagramsModule() {
     explore: 'Build an equal-time dot diagram and connect its spacing, arrows, data, and graphs to one motion model.',
     explain: 'Read motion diagrams in a consistent order: confirm equal times, inspect spacing, identify direction, then compare velocity and acceleration.',
     quiz: 'Interpret dot patterns, vectors, graph slopes, and motion reversals with immediate skill-based feedback.',
+    fun: 'Classify dot diagrams and read acceleration off a graph slope. Chase a high score or set your own difficulty.',
   };
-  return <LearningModuleShell eyebrow="Multiple representations" title="Motion Diagram Studio" intro={<>One motion can be shown with dots, arrows, numbers, and graphs. <strong>Equal time intervals turn spacing into evidence about speed.</strong></>} mode={mode} onModeChange={setMode} modeCopy={modeCopy}>
+  return <LearningModuleShell eyebrow="Multiple representations" title="Motion Diagram Studio" intro={<>One motion can be shown with dots, arrows, numbers, and graphs. <strong>Equal time intervals turn spacing into evidence about speed.</strong></>} mode={mode} onModeChange={setMode} modeCopy={modeCopy} includeFunZone>
     {mode === 'explore' && <MotionExplore inputs={inputs} onInputsChange={setInputs} interval={interval} onIntervalChange={setInterval} focusIndex={focusIndex} onFocusIndexChange={setFocusIndex} />}
     {mode === 'explain' && <MotionExplain inputs={inputs} interval={interval} focusIndex={focusIndex} />}
     {mode === 'quiz' && <ConceptQuiz moduleId="motion-diagrams" questions={questions} onReviewExplain={() => setMode('explain')} />}
+    {mode === 'fun' && <MotionDiagramFunZone />}
   </LearningModuleShell>;
 }
 
 function MotionExplore({ inputs, onInputsChange, interval, onIntervalChange, focusIndex, onFocusIndexChange }: {
   inputs: LinearMotionInputs; onInputsChange: (inputs: LinearMotionInputs) => void; interval: number; onIntervalChange: (value: number) => void; focusIndex: number; onFocusIndexChange: (value: number) => void;
 }) {
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const samples = useMemo(() => Array.from({ length: 8 }, (_, index) => ({ time: index * interval, ...linearMotionAtTime(inputs, index * interval) })), [inputs, interval]);
   const positions = samples.map((sample) => sample.position);
   const minimum = Math.min(...positions);
@@ -47,8 +53,76 @@ function MotionExplore({ inputs, onInputsChange, interval, onIntervalChange, foc
           : { initialPosition: 0, initialVelocity: 3, acceleration: -1.4 };
     onInputsChange(next);
   };
-  return <div className="topic-explore-layout">
+  const walkthroughSteps: WalkthroughStep[] = [
+    {
+      type: 'concept',
+      title: 'Read Before You Calculate',
+      body: "A motion diagram records an object's position at equal time intervals. Because the intervals are equal, the spacing between dots becomes a direct visual measure of speed — no equations needed yet. Wide gaps mean fast; narrow gaps mean slow; equal gaps mean constant velocity.",
+    },
+    {
+      type: 'task',
+      title: 'Build Constant Velocity',
+      instructions: ['Set Acceleration to 0.', 'Give the object a nonzero Initial velocity.', 'Check that every gap between dots looks the same width.'],
+      hint: 'Set Acceleration to exactly 0 using its slider.',
+      observation: 'All the dots are evenly spaced — equal distances covered in each equal time interval.',
+      explanation: 'Constant velocity means the object covers the same displacement every interval, since velocity is not changing.',
+      complete: Math.abs(inputs.acceleration) < 0.05 && Math.abs(inputs.initialVelocity) > 0.2,
+    },
+    {
+      type: 'task',
+      title: 'Speed It Up',
+      instructions: ['Set velocity and acceleration to the same sign (both positive or both negative).', 'Watch how the gaps between dots grow over time.'],
+      hint: 'Try a positive Initial velocity together with a positive Acceleration.',
+      observation: 'Each gap is wider than the one before it — the object covers more ground every equal interval.',
+      explanation: 'When velocity and acceleration point the same direction, speed increases: the object speeds up in the direction it is already moving.',
+      complete: inputs.initialVelocity * inputs.acceleration > 0.2,
+    },
+    {
+      type: 'check',
+      title: 'Check: Growing Gaps',
+      prompt: 'Dots are getting farther apart at equal time intervals. What does that spacing pattern indicate?',
+      choices: ['Speed is increasing', 'Speed is constant', 'The object is at rest', 'The time intervals are getting longer'],
+      answer: 'Speed is increasing',
+      explanation: 'Increasing equal-time displacement is exactly what an increasing speed looks like in a motion diagram.',
+    },
+    {
+      type: 'task',
+      title: 'Slow It Down',
+      instructions: ['Set velocity and acceleration to opposite signs, but keep the effect gentle enough that the object does not reverse.', 'Watch the gaps shrink from left to right.'],
+      hint: 'Try a positive Initial velocity with a small negative Acceleration.',
+      observation: 'The gaps between dots shrink over time — the object is still moving in its original direction but losing speed.',
+      explanation: 'Opposing velocity and acceleration reduce speed. If the acceleration is not strong enough to fully cancel the velocity within this window, the object slows but does not reverse.',
+      complete: inputs.initialVelocity * inputs.acceleration < -0.2 && !reversed,
+    },
+    {
+      type: 'task',
+      title: 'Make It Turn Around',
+      instructions: ['Increase the opposing acceleration until the object reverses direction partway through.', 'Find the dot where the spacing shrinks to nearly nothing, then grows again in the other direction.'],
+      hint: 'Push the Acceleration further in the direction opposite the Initial velocity.',
+      observation: 'The dots bunch together, nearly overlap at the turnaround point, then spread apart again moving the other way.',
+      explanation: 'An object reverses when its velocity passes through zero. Acceleration never stops acting, so it keeps changing velocity right through that zero-crossing.',
+      complete: reversed,
+    },
+    {
+      type: 'check',
+      title: 'Check: Reading a Graph',
+      prompt: "A position-time graph shows a perfectly flat, horizontal line. What does that tell you about the object's velocity?",
+      choices: ['Velocity is zero — the object is at rest', 'Velocity is constant and large', 'Acceleration is constant and large', 'The object is speeding up'],
+      answer: 'Velocity is zero — the object is at rest',
+      explanation: 'Velocity is the slope of a position-time graph. A flat line has zero slope, meaning zero velocity.',
+    },
+    {
+      type: 'check',
+      title: 'Mastery Check',
+      prompt: 'Which of these is a vector quantity, not a scalar?',
+      choices: ['Displacement', 'Distance traveled', 'Speed', 'Time elapsed'],
+      answer: 'Displacement',
+      explanation: 'Displacement includes direction (it can be positive or negative), while distance, speed, and time are magnitudes only.',
+    },
+  ];
+  return <div className={`topic-explore-layout ${walkthroughOpen ? 'walkthrough-active' : ''}`}>
     <div className="topic-main-column">
+      <TopicWalkthrough storageKey="physics-motion-lab-motion-diagrams-walkthrough-v1" label="Motion Diagrams" steps={walkthroughSteps} onOpenChange={setWalkthroughOpen} />
       <figure className="topic-simulation" aria-labelledby="motion-diagram-caption">
         <svg viewBox="0 0 720 300" role="img" aria-label="Equal-time motion diagram with velocity arrows">
           <defs><marker id="motion-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" /></marker></defs>
@@ -83,11 +157,6 @@ function MotionExplore({ inputs, onInputsChange, interval, onIntervalChange, foc
           <RangeControl label="Focus dot" value={focusIndex} min={0} max={7} step={1} unit="" onChange={onFocusIndexChange} />
         </div>
       </section>
-      <GuidedChallenges challenges={[
-        { title: 'Equal spacing', prompt: 'Create constant velocity so every equal-time displacement is the same.', hint: 'Set acceleration to zero.', complete: Math.abs(inputs.acceleration) < 0.05 && Math.abs(inputs.initialVelocity) > 0.2 },
-        { title: 'Speeding up', prompt: 'Make velocity and acceleration point in the same direction.', hint: 'Give velocity and acceleration the same sign.', complete: inputs.initialVelocity * inputs.acceleration > 0.2 },
-        { title: 'Turn around', prompt: 'Create a motion that reverses direction before the last dot.', hint: 'Acceleration must oppose the initial velocity strongly enough.', complete: reversed },
-      ]} />
     </div>
     <aside className="topic-side-column">
       <section className="panel"><div className="panel-title"><Clock3 aria-hidden="true" size={20} /><h2>Focused Dot {focusIndex}</h2></div><MetricGrid metrics={[

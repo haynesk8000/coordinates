@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it } from 'vitest';
 import App from '../App';
 import { difficultyFromCorrect } from '../components/FunZoneMode';
 
@@ -21,7 +21,9 @@ const submitPlot = (x: number, y: number) => {
 };
 
 describe('Fun Zone', () => {
-  it('adds a Coordinate Systems-only mode with five activities', () => {
+  beforeEach(() => window.localStorage.clear());
+
+  it('gives Coordinate Systems a five-activity arcade', () => {
     openFunZone();
 
     const selector = screen.getByRole('navigation', { name: 'Fun Zone activities' });
@@ -31,10 +33,16 @@ describe('Fun Zone', () => {
     fireEvent.click(within(selector).getByRole('button', { name: /Rotation Reactor/ }));
     expect(screen.getByRole('heading', { name: 'Rotation Reactor' })).toBeVisible();
     expect(screen.getByLabelText('Difficulty 0%')).toBeVisible();
+  });
 
+  it('also gives the other physics topics their own Fun Zone', () => {
+    render(<App />);
     fireEvent.click(screen.getByRole('tab', { name: 'Projectile Motion' }));
-    const placeholderModes = within(screen.getByRole('tablist', { name: 'Learning mode' }));
-    expect(placeholderModes.queryByRole('tab', { name: 'Fun Zone' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Fun Zone' }));
+
+    const selector = screen.getByRole('navigation', { name: 'Fun Zone activities' });
+    expect(within(selector).getAllByRole('button')).toHaveLength(3);
+    expect(screen.getByRole('heading', { name: 'Cannon Game' })).toBeVisible();
   });
 
   it('provides immediate feedback and tracks a measurable score', () => {
@@ -47,6 +55,24 @@ describe('Fun Zone', () => {
     expect(screen.getByRole('button', { name: /Next challenge/ })).toBeVisible();
     expect(screen.getByLabelText('Game score')).toHaveTextContent('0 streak');
     expect(screen.getByLabelText('0 total points from 1 attempts')).toBeInTheDocument();
+  });
+
+  it('persists score across a reload', () => {
+    openFunZone();
+    const target = currentPlotTarget();
+    submitPlot(target.x, target.y);
+    expect(screen.getByLabelText('1 total points from 1 attempts')).toBeInTheDocument();
+
+    cleanup();
+    openFunZone();
+    expect(screen.getByLabelText('1 total points from 1 attempts')).toBeInTheDocument();
+  });
+
+  it('lets a student pick a fixed difficulty instead of the automatic ramp', () => {
+    openFunZone();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hard' }));
+    expect(screen.getByLabelText('Difficulty 80%')).toBeVisible();
   });
 
   it('calculates the exact capped difficulty progression', () => {

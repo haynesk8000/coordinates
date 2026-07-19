@@ -48,6 +48,7 @@ export function TopicSwitcher({ topic, onChange }: Props) {
           id={topicTabId(item.id)}
           type="button"
           role="tab"
+          data-topic={item.id}
           aria-controls={topicPanelId(item.id)}
           aria-selected={topic === item.id}
           tabIndex={topic === item.id ? 0 : -1}

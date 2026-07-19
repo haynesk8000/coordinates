@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import App from '../App';
 
 const topLevelTabs = () => within(screen.getByRole('tablist', { name: 'Physics topics' }));
@@ -7,6 +7,8 @@ const topLevelTabs = () => within(screen.getByRole('tablist', { name: 'Physics t
 const activeTopicPanel = () => within(screen.getByRole('tabpanel'));
 
 describe('application navigation', () => {
+  beforeEach(() => window.localStorage.clear());
+
   it('shows five top-level physics topics', () => {
     render(<App />);
 
@@ -24,7 +26,7 @@ describe('application navigation', () => {
     fireEvent.click(topLevelTabs().getByRole('tab', { name: 'Projectile Motion' }));
     const learningModes = within(screen.getByRole('tablist', { name: 'Learning mode' }));
 
-    expect(learningModes.getAllByRole('tab')).toHaveLength(3);
+    expect(learningModes.getAllByRole('tab')).toHaveLength(4);
     expect(activeTopicPanel().getByRole('heading', { name: 'Projectile Motion Lab' })).toBeVisible();
     expect(activeTopicPanel().getByLabelText('Launch speed')).toBeVisible();
 

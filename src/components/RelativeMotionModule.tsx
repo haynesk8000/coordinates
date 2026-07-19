@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Anchor, Navigation, Waves } from 'lucide-react';
 import { formatPhysicsNumber, relativeVelocityState, type RelativeMotionInputs } from '../physics/learningModules';
-import { ConceptQuiz, ExplainView, GuidedChallenges, LearningModuleShell, MetricGrid, RangeControl, type ConceptQuestion, type CoreMode } from './LearningModuleShared';
+import { RelativeMotionFunZone } from './funzone/RelativeMotionFunZone';
+import { ConceptQuiz, ExplainView, LearningModuleShell, MetricGrid, RangeControl, type ConceptQuestion } from './LearningModuleShared';
+import type { Mode } from './ModeSwitcher';
+import { TopicWalkthrough, type WalkthroughStep } from './walkthroughs/TopicWalkthrough';
 
 const questions: ConceptQuestion[] = [
   { prompt: 'A passenger walks forward at 2 m/s inside a train moving forward at 10 m/s. What is the passenger speed relative to the ground?', choices: ['12 m/s', '8 m/s', '2 m/s', '20 m/s'], answer: '12 m/s', explanation: 'The aligned velocities add: passenger/train plus train/ground.', skill: 'velocity addition' },
@@ -12,22 +15,25 @@ const questions: ConceptQuestion[] = [
 ];
 
 export function RelativeMotionModule() {
-  const [mode, setMode] = useState<CoreMode>('explore');
+  const [mode, setMode] = useState<Mode>('explore');
   const [inputs, setInputs] = useState<RelativeMotionInputs>({ boatSpeed: 5, headingDegrees: 90, currentSpeed: 2, riverWidth: 20 });
   const [progress, setProgress] = useState(65);
   const modeCopy = {
     explore: 'Compare shore and water-frame views while building the ground velocity from two visible vectors.',
     explain: 'Name the object and frame for every velocity, arrange a vector equation, then check its direction in both views.',
     quiz: 'Practice notation, vector addition, crossings, and frame invariants with immediate explanations.',
+    fun: 'Chain velocity vectors across frames and drill the subscript notation. Chase a high score or set your own difficulty.',
   };
-  return <LearningModuleShell eyebrow="Moving reference frames" title="Relative Motion Navigator" intro={<>A velocity is incomplete until its reference frame is named. <strong>The same boat has different velocities relative to the water and shore.</strong></>} mode={mode} onModeChange={setMode} modeCopy={modeCopy}>
+  return <LearningModuleShell eyebrow="Moving reference frames" title="Relative Motion Navigator" intro={<>A velocity is incomplete until its reference frame is named. <strong>The same boat has different velocities relative to the water and shore.</strong></>} mode={mode} onModeChange={setMode} modeCopy={modeCopy} includeFunZone>
     {mode === 'explore' && <RelativeExplore inputs={inputs} onInputsChange={setInputs} progress={progress} onProgressChange={setProgress} />}
     {mode === 'explain' && <RelativeExplain inputs={inputs} />}
     {mode === 'quiz' && <ConceptQuiz moduleId="relative-motion" questions={questions} onReviewExplain={() => setMode('explain')} />}
+    {mode === 'fun' && <RelativeMotionFunZone />}
   </LearningModuleShell>;
 }
 
 function RelativeExplore({ inputs, onInputsChange, progress, onProgressChange }: { inputs: RelativeMotionInputs; onInputsChange: (inputs: RelativeMotionInputs) => void; progress: number; onProgressChange: (value: number) => void }) {
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const relative = relativeVelocityState(inputs);
   const crossingTime = Number.isFinite(relative.crossingTime) ? relative.crossingTime : 0;
   const time = crossingTime * (progress / 100);
@@ -40,8 +46,78 @@ function RelativeExplore({ inputs, onInputsChange, progress, onProgressChange }:
   const waterBoatY = 260 - waterPosition.y * scaleY;
   const cancelHeading = Math.acos(Math.min(1, inputs.currentSpeed / inputs.boatSpeed)) * 180 / Math.PI;
   const upstreamCancelHeading = 180 - cancelHeading;
-  return <div className="topic-explore-layout">
+  const walkthroughSteps: WalkthroughStep[] = [
+    {
+      type: 'concept',
+      title: 'Name the Frame First',
+      body: "A velocity is meaningless until you say what it's measured relative to. 'The boat's velocity' is incomplete — is that relative to the water, or relative to the shore? Every relative-velocity vector needs both an object and a reference frame, written as v(object/frame).",
+    },
+    {
+      type: 'task',
+      title: 'Point Straight Across',
+      instructions: ['Set Heading from +x to 90° (straight across the river).', 'Make sure Current speed is above 0.', 'Compare the shore-frame path to the water-frame path.'],
+      hint: 'Set Heading from +x to exactly 90°.',
+      observation: 'In the water frame, the boat goes straight across. In the shore frame, the same boat drifts downstream even though it never changed heading.',
+      explanation: "The boat's heading only controls its velocity relative to the water. The current adds its own velocity relative to the ground, shifting the ground-frame path without the pilot doing anything differently.",
+      complete: inputs.headingDegrees === 90 && inputs.currentSpeed > 0.2,
+    },
+    {
+      type: 'check',
+      title: 'Check: Drifting Downstream',
+      prompt: 'A boat points directly across a river while a current flows downstream. Relative to the shore, where does the boat end up?',
+      choices: ['Downstream from the point directly across', 'Exactly directly across', 'Upstream from the point directly across', 'Back at its starting point'],
+      answer: 'Downstream from the point directly across',
+      explanation: 'The current contributes a downstream component to the ground velocity, even though the boat is aimed straight across relative to the water.',
+    },
+    {
+      type: 'task',
+      title: 'Cancel the Drift',
+      instructions: ['Aim the boat upstream (heading below 90°) to fight the current.', 'Adjust the heading until the ground path is nearly straight across.'],
+      hint: inputs.currentSpeed >= inputs.boatSpeed
+        ? 'First increase boat speed above the current speed.'
+        : `Try a heading near ${formatPhysicsNumber(upstreamCancelHeading, 0)}° for the current settings.`,
+      observation: 'Angling into the current can cancel the downstream drift entirely, sending the boat straight across relative to the shore.',
+      explanation: 'The upstream component of the boat/water velocity can exactly offset the current, so the two horizontal components sum to zero even though the boat is still moving relative to the water.',
+      complete: Math.abs(relative.boatRelativeGround.x) < 0.12,
+    },
+    {
+      type: 'task',
+      title: "Remove the Frame's Own Motion",
+      instructions: ['Set Current speed to 0.', 'Compare the shore-frame and water-frame paths now.'],
+      hint: 'Move the Current speed slider all the way to 0.',
+      observation: 'With no current, the water frame and the shore frame agree — the two paths look identical.',
+      explanation: 'The water frame only differs from the shore frame because the water itself is moving relative to the shore. Remove that motion and the two frames become the same.',
+      complete: inputs.currentSpeed === 0,
+    },
+    {
+      type: 'check',
+      title: 'Check: The Frame Equation',
+      prompt: "Which vector equation correctly relates the boat's velocity relative to the ground?",
+      choices: ['v⃗B/G = v⃗B/W + v⃗W/G', 'v⃗B/G = v⃗B/W − v⃗W/G', 'v⃗B/G = v⃗W/G − v⃗B/W', 'v⃗B/G = v⃗B/W × v⃗W/G'],
+      answer: 'v⃗B/G = v⃗B/W + v⃗W/G',
+      explanation: 'The shared middle subscript (W) links the chain: boat relative to water, plus water relative to ground, gives boat relative to ground.',
+    },
+    {
+      type: 'task',
+      title: 'Let the Boat Dominate the Current',
+      instructions: ['Raise Boat speed through water well above Current speed.', 'Notice how little the current now affects the ground path.'],
+      hint: 'Try a Boat speed at least 1.5 times the Current speed.',
+      observation: 'When the boat is much faster than the current, the current has only a small effect on the overall path — similar to a fast airplane crossing a mild wind.',
+      explanation: "The current's contribution to the ground velocity has a fixed size. As the boat's own speed grows, that fixed contribution becomes a smaller fraction of the total, so its relative effect shrinks.",
+      complete: inputs.boatSpeed >= inputs.currentSpeed * 1.5 && inputs.currentSpeed > 0,
+    },
+    {
+      type: 'check',
+      title: 'Mastery Check',
+      prompt: 'An airplane with airspeed 200 km/h heads directly into a 50 km/h headwind. What is true about its speed relative to the ground?',
+      choices: ['Its ground speed is less than 200 km/h', 'Its ground speed is exactly 200 km/h', 'Its ground speed is greater than 200 km/h', 'Wind does not affect ground speed'],
+      answer: 'Its ground speed is less than 200 km/h',
+      explanation: 'A headwind opposes the direction of travel, so the wind velocity subtracts from the airspeed when added as vectors, reducing the ground speed.',
+    },
+  ];
+  return <div className={`topic-explore-layout ${walkthroughOpen ? 'walkthrough-active' : ''}`}>
     <div className="topic-main-column">
+      <TopicWalkthrough storageKey="physics-motion-lab-relative-motion-walkthrough-v1" label="Relative Motion" steps={walkthroughSteps} onOpenChange={setWalkthroughOpen} />
       <figure className="topic-simulation" aria-labelledby="relative-scene-caption">
         <svg viewBox="0 0 760 350" role="img" aria-label="Boat crossing shown in shore and water reference frames">
           <defs><marker id="relative-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" /></marker></defs>
@@ -70,11 +146,6 @@ function RelativeExplore({ inputs, onInputsChange, progress, onProgressChange }:
           <RangeControl label="Crossing progress" value={progress} min={0} max={100} step={1} unit="%" onChange={onProgressChange} />
         </div>
       </section>
-      <GuidedChallenges challenges={[
-        { title: 'Point straight across', prompt: 'Aim at 90°. Observe that pointing straight across does not make the ground path straight across.', hint: 'Set Heading from +x to 90°.', complete: inputs.headingDegrees === 90 && inputs.currentSpeed > 0.2 },
-        { title: 'Cancel the drift', prompt: 'Aim upstream until the ground velocity has almost no downstream component.', hint: inputs.currentSpeed >= inputs.boatSpeed ? 'First increase boat speed above the current speed.' : `Try a heading near ${formatPhysicsNumber(upstreamCancelHeading, 0)}° for the current settings.`, complete: Math.abs(relative.boatRelativeGround.x) < 0.12 },
-        { title: 'Remove frame motion', prompt: 'Set the current to zero and compare the two paths.', hint: 'Move Current speed to 0.', complete: inputs.currentSpeed === 0 },
-      ]} />
     </div>
     <aside className="topic-side-column">
       <section className="panel"><div className="panel-title"><Anchor aria-hidden="true" size={20} /><h2>Velocity Triangle</h2></div><MetricGrid metrics={[

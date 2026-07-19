@@ -8,6 +8,7 @@ import type { ProjectileParameters } from '../physics/projectile';
 type Props = {
   params: ProjectileParameters;
   onReviewExplain: () => void;
+  onTryWalkthrough?: () => void;
 };
 
 type Feedback = {
@@ -19,13 +20,18 @@ const storageKey = 'coordinate-kinematics-quiz-score';
 
 const normalize = (value: string) => value.toLowerCase().replace(/\s+/g, ' ').trim();
 
-const selectQuizQuestions = (pool: QuizQuestion[], count: number, previousSignature = ''): QuizQuestion[] => {
-  const shuffled = [...pool];
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
-  }
-  const selected = shuffled.slice(0, count);
+const skillWeight = (skill: QuizQuestion['skill'], score: QuizScore) => {
+  const record = score.bySkill[skill];
+  if (!record || record.attempts === 0) return 1.6;
+  const accuracy = record.correct / record.attempts;
+  return 1 + (1 - accuracy) * 2.2;
+};
+
+const selectQuizQuestions = (pool: QuizQuestion[], count: number, score: QuizScore, previousSignature = ''): QuizQuestion[] => {
+  const weighted = pool
+    .map((question) => ({ question, key: Math.random() ** (1 / skillWeight(question.skill, score)) }))
+    .sort((a, b) => b.key - a.key);
+  const selected = weighted.slice(0, count).map((item) => item.question);
   const signature = selected.map((question) => question.id).join('|');
   if (signature !== previousSignature || pool.length <= count) return selected;
 
@@ -131,18 +137,20 @@ function ShortQuestion({
   );
 }
 
-export function QuizMode({ params, onReviewExplain }: Props) {
+export function QuizMode({ params, onReviewExplain, onTryWalkthrough }: Props) {
   const questionPool = useMemo(() => buildQuestionBank(params), [params]);
   const [quizVersion, setQuizVersion] = useState(0);
   const previousQuizSignature = useRef('');
   const questions = useMemo(() => {
-    const selected = selectQuizQuestions(questionPool, 10, previousQuizSignature.current);
+    const selected = selectQuizQuestions(questionPool, 10, scoreRef.current, previousQuizSignature.current);
     previousQuizSignature.current = selected.map((selectedQuestion) => selectedQuestion.id).join('|');
     return selected.map((selectedQuestion) => shuffleQuestionChoices(selectedQuestion));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionPool, quizVersion]);
   const [index, setIndex] = useState(0);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [score, setScore] = useState<QuizScore>(() => loadScore());
+  const scoreRef = useRef(score);
   const question = questions[index];
 
   useEffect(() => {
@@ -151,6 +159,7 @@ export function QuizMode({ params, onReviewExplain }: Props) {
   }, [questions]);
 
   useEffect(() => {
+    scoreRef.current = score;
     localStorage.setItem(storageKey, JSON.stringify(score));
   }, [score]);
 
@@ -167,9 +176,17 @@ export function QuizMode({ params, onReviewExplain }: Props) {
     }
     if (question.type === 'short') {
       const text = normalize(String(answer));
-      const matches = question.keyIdeas.filter((idea) => text.includes(normalize(idea))).length;
-      const correct = matches >= 3;
-      submit(correct, correct ? question.explanation : `${question.explanation} A model answer: ${question.sample}`);
+      const foundIdeas = question.keyIdeas.filter((idea) => text.includes(normalize(idea)));
+      const missingIdeas = question.keyIdeas.filter((idea) => !foundIdeas.includes(idea));
+      const threshold = Math.max(1, Math.ceil(question.keyIdeas.length * 0.5));
+      const correct = foundIdeas.length >= threshold;
+      const coverageNote = foundIdeas.length > 0
+        ? `Your answer touched on: ${foundIdeas.join(', ')}.`
+        : 'Your answer did not clearly mention any of the key ideas yet.';
+      const missingNote = missingIdeas.length > 0 ? ` Consider adding: ${missingIdeas.join(', ')}.` : '';
+      submit(correct, correct
+        ? `${question.explanation} ${coverageNote}`
+        : `${question.explanation} ${coverageNote}${missingNote} A model answer: ${question.sample}`);
       return;
     }
     const correct = normalize(String(answer)) === normalize(question.answer);
@@ -214,6 +231,11 @@ export function QuizMode({ params, onReviewExplain }: Props) {
               <button type="button" onClick={onReviewExplain}>
                 Review explanation
               </button>
+              {!feedback.correct && onTryWalkthrough && (
+                <button type="button" onClick={onTryWalkthrough}>
+                  Try a Walkthrough
+                </button>
+              )}
               <button type="button" onClick={next}>
                 {index === questions.length - 1 ? 'Start new quiz' : 'Next question'}
               </button>

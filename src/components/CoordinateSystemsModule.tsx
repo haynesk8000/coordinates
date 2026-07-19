@@ -97,7 +97,7 @@ export function CoordinateSystemsModule() {
           />
         )}
         {mode === 'explain' && <ExplainMode params={params} system={system} />}
-        {mode === 'quiz' && <QuizMode params={params} onReviewExplain={() => setMode('explain')} />}
+        {mode === 'quiz' && <QuizMode params={params} onReviewExplain={() => setMode('explain')} onTryWalkthrough={() => setMode('explore')} />}
         {mode === 'fun' && <FunZoneMode />}
       </div>
     </>
