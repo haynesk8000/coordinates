@@ -1,7 +1,0 @@
-Please make the following changes;
-
-the axes of the coordinate form a right angle before any rotation.  But when the axes are rotated the right angle changes.  maintain a right angle through all rotations.When the origin is located at one of the preset locations, express the symbolic equation using the appropriate symbolic elements: 'H', 'h', 'd1', and 'd2'.
-
-If the coordinate system origin is moved within 5 pixels of a preset location, automatically snap the origin to that preset location.
-
-Update and let me know when everything is done.

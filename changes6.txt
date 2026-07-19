@@ -1,3 +1,0 @@
-Please make the following changes;
-
-the axes of the coordinate form a right angle before any rotation.  But when the axes are rotated the right angle changes.  maintain a right angle through all rotations.

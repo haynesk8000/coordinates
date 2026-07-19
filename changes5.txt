@@ -1,8 +1,0 @@
-Please make the following changes;
-
-the the length of the axes of the origin the same length.  And use a thin dashed line for both.  make them the size of the initial y axis
-
-make the inside of the circle at the origin transparent instead of solid white
-
-Use greek symbols for theta and phi instead of spelling them out.
-
