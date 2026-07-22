@@ -1,85 +1,220 @@
-# Coordinate Kinematics Lab — Engagement & Effectiveness Suggestions
+﻿# Arcade Game Concepts for the Coordinate System Tab
 
-Reviewed: 2026-07-18
-Scope: read-only review of the current app (React 19 + TypeScript + Vite SPA). No application code was changed as part of this review — this document is recommendations only.
+## Design context
 
-## How the app is structured today (for context)
+The current tab keeps one projectile path fixed while students move the origin, rotate or flip orthogonal axes, choose presets, relabel axes, and swap which physical direction is called `x` or `y`. Its live vectors, component table, equations, derivations, and quizzes teach this chain:
 
-There are two nested tab layers:
-- **Topics** (`TopicSwitcher`): Coordinate Systems, Projectile Motion, Motion Diagrams, Relative Motion, Uniform Circular Motion.
-- **Modes** within each topic (`ModeSwitcher`): Explore, Explain, Quiz — plus a **Fun Zone** and **Walkthroughs** that exist *only* inside the Coordinate Systems topic.
+`origin → initial coordinates`  
+`axis direction → signs`  
+`axis orientation → projected magnitudes`  
+`axis label → equation variable`  
+`velocity and gravity → components`  
+`all choices → component equations`
 
-That asymmetry — one topic with a full arcade + guided-task system, four topics with a much lighter template — is the single biggest structural fact shaping the suggestions below.
+These proposals reinforce those objectives while differing from the existing plotting, coordinate-reading, translation, rotation, and coordinate-relationship mini-games. All can use the existing React, TypeScript, SVG, projection/equation engine, and `localStorage`; none needs a backend.
 
----
+## 1. Frame Shift Frenzy
 
-## Top priority (highest engagement payoff, least effort)
+### Gameplay
 
-### 1. Persist Fun Zone progress
-`FunZoneMode.tsx` tracks points, accuracy, streaks, and an auto-ramping difficulty meter — the most game-like system in the app — but it lives in plain `useState` with no `localStorage` calls. Every time a student leaves Fun Zone (even just to check Explain mode) and comes back, or reloads the page, their streak and difficulty level reset to zero.
+A fast survival-matching game. The projectile approaches gates along its unchanged world-space path. Each gate requests a frame, such as “origin at wall top; axis 1 left; axis 2 down; labels `a, b`.” The player must reconfigure the overlaid frame before impact. The scenery and trajectory never move, making invariant physical motion visible throughout play.
 
-This is very likely undermining the exact feature meant to hook students. The Coordinate Systems quiz and the Walkthroughs both already persist to `localStorage` — Fun Zone should follow the same pattern (e.g. `coordinate-funzone-stats-v1`). This is a small, contained fix with outsized effect on perceived progress and return visits.
+### Concepts reinforced
 
-### 2. Extend real color beyond Fun Zone
-`globals.css` defines CSS variables named like a palette (`--blue`, `--teal`, `--red`, `--amber`, `--purple`) but they all resolve to near-identical dark grays. The entire app — every topic, every mode — is effectively monochrome except Fun Zone, which has a distinct, considerably more vivid palette (coral/blue/green/purple/gold accents, gradient hero banner).
+Origin changes affect only position components; flips reverse every component on that axis; rotation changes projections while preserving orthogonality; labels change symbols rather than vectors; swaps decide which named equation receives velocity or gravity.
 
-Since a working, appealing color language already exists in one corner of the app, the fix isn't "invent a design system" — it's "use the one you already built." Concrete options:
-- Assign each of the 5 topics its own accent color (reuse Fun Zone's palette) so `TopicSwitcher` and each module's header read as visually distinct, memorable places rather than five copies of the same gray shell.
-- Use color intentionally for state, not just decoration: correct/incorrect quiz feedback, "task complete" states in Walkthroughs/GuidedChallenges, and difficulty-level changes could all borrow Fun Zone's existing success/level-up treatment instead of staying text-only.
-- Keep the serious, low-noise gray as the *base* (it suits equation panels and derivations) but stop treating it as the only voice the app has.
+### Core mechanics
 
-### 3. Bring Walkthroughs and a persisted "discoveries" system to all five topics
-The 20-task Translation/Rotation Walkthrough system in Coordinate Systems is arguably the most pedagogically rigorous thing in the app — it verifies task completion from live physics state rather than trusting self-report, shows dual progress bars, and gives idle-triggered hints. The other four topics have only `GuidedChallenges`, a lighter 3-goal version of the same idea, and its progress is **not persisted** (lost on remount).
+- Drag the origin to cliff, ground, wall, or landing anchors.
+- Drag an axis handle or use keys to rotate in 15-degree steps.
+- Use two flip controls plus label and swap controls.
+- Lock the frame before the gate; optional ghost hints reveal origin or orientation.
 
-Two independent improvements here, either one worth doing on its own:
-- Persist `GuidedChallenges` progress the same way Walkthroughs does.
-- Author topic-specific walkthrough task lists (even 5–8 tasks each, not 20) for Projectile Motion, Motion Diagrams, Relative Motion, and Circular Motion, using the existing Walkthrough component/infra rather than building something new. This directly closes the biggest "rich topic vs. thin topic" gap in the app.
+This can reuse the current SVG handles, anchors, rotation units, flips, and clamping.
 
----
+### Immediate feedback
 
-## Engagement mechanics worth adding
+Properties validate separately: the origin pulses, axes glow when aligned, and labels snap into sockets. A miss slows time and isolates the issue: “Origin is correct; positive `b` points the wrong way.” A before/after strip identifies changed and invariant components, while world velocity and gravity arrows stay fixed.
 
-### 4. A cross-topic progress/mastery view
-Every quiz keeps its own isolated `localStorage` score (`coordinate-kinematics-quiz-score`, `physics-motion-lab-projectile-motion-score`, etc.) with no aggregation anywhere. A student who works through all five topics has no way to see overall mastery, total points, or a "3 of 5 topics complete" summary. A simple dashboard (even a card on the landing/topic-switcher screen) that reads all five stored scores and Fun Zone/Walkthrough progress would turn five disconnected mini-apps into one coherent course with visible momentum — a well-established engagement lever (progress visualization) that the app currently has all the underlying data for but never surfaces.
+### Score and replayability
 
-### 5. Let quiz difficulty adapt to tracked skill history
-The Coordinate Systems quiz already tracks per-skill scores (origin placement, axis orientation, velocity components, etc.) but always draws 10 random questions regardless of that history. Weighting question selection toward weaker skills (or offering a "focus on what I'm missing" mode) would make the practice loop feel responsive rather than just repetitive, using data the app is already collecting and currently throwing away.
+Award base, speed, and rotation-precision points; grow a combo for first-try frames; use three shield segments as lives. Daily seeded runs, local high scores, and medals for flawless origin, sign, or swapped-label rounds encourage return play.
 
-### 6. Add lightweight celebratory feedback
-Right now positive feedback across the app is text + icon color only (Fun Zone's "Difficulty increased to X%!" banner is the closest thing to a celebration moment). A small, tasteful animation or transient visual pulse on quiz streaks, walkthrough completion, or difficulty level-ups (no sound needed, respecting `prefers-reduced-motion`) would make milestones feel earned rather than just logged. Keep it subtle — this is an undergraduate physics tool, not a mobile game, so restraint matters more than spectacle.
+### Difficulty
 
-### 7. Let students choose their own difficulty in Fun Zone
-Difficulty currently only ramps automatically (up in 20% steps every 3 correct answers) with no manual override. A visible "Easy / Medium / Hard / Auto" selector would help both stronger students who want an immediate challenge and struggling students who want to dial back without having to "earn" a lower difficulty — small addition, meaningful control.
+- **Beginner:** cardinal axes, visible anchors, one change at a time.
+- **Intermediate:** simultaneous origin, flip, and label changes.
+- **Advanced:** common non-cardinal angles, swaps, shorter gates.
+- **Expert:** infer the frame from a component table or equation pair.
 
----
+### Arcade presentation
 
-## Pedagogical effectiveness
+Use sweeping gates, neon lock-on outlines, grid trails, separate confirmation clicks, and a low-time pulse. Rotation pitch can track angle. Reduced motion replaces sweeps with fades; audio is optional.
 
-### 8. Fix the naive short-answer quiz grading
-`QuizMode.tsx` grades free-text answers by checking whether at least 3 of N expected keyword substrings appear anywhere in the normalized text. This is easy to game (typing disconnected keywords) and easy to fail through a valid paraphrase that happens to avoid the exact expected words — a plausible source of real student frustration and lost trust in the feedback loop, which matters a lot given the app's stated goal ("help students reason through the formulas," per `AGENTS.md`) rather than just testing recall. Consider either loosening this to accept more phrasings, converting these items to the existing component-builder / multiple-choice formats (which are graded exactly), or showing partial credit with which specific ideas were/weren't detected instead of a binary right/wrong.
+## 2. Equation Blaster
 
-### 9. Surface the Walkthroughs more prominently
-The Walkthroughs panel is a collapsed section at the top of Explore mode within one topic, with no entry point from Fun Zone, Quiz, or the topic switcher. Given it's the most rigorous guided-learning feature in the app, consider promoting it — e.g., a "Start guided practice" call-to-action visible from the topic landing view, or prompting students who get several quiz questions wrong on a skill to try the relevant walkthrough task.
+### Gameplay
 
-### 10. Build out the next topics already scoped in `Concepts.md`
-`Concepts.md` already proposes (but the app doesn't yet implement) polar coordinates with rotating basis vectors and non-uniform circular motion (tangential vs. radial acceleration split) — both natural, already-planned extensions of the existing topic set, and a good way to keep returning students engaged with genuinely new material rather than re-doing the same five topics.
+A fixed-screen shooter/sorting game. Terms such as `H`, `-d1`, `v0 t`, `-v0 t`, `+1/2 gt²`, and `-1/2 gt²` drift toward two equation bays named for the current axes. The player routes valid terms to the correct bay and destroys decoys. A cleared wave assembles both simplified equations.
 
----
+### Concepts reinforced
 
-## Smaller polish items
+Constants come from origin placement, linear terms from projected launch velocity, and quadratic terms from projected gravity. Students practice independent component signs, swapped/custom label ownership, and omission of zero terms.
 
-- **Dead CSS**: `.placeholder-panel` in `globals.css` (lines ~212–226) isn't referenced by any component — leftover from an earlier stubbed-out mode. Safe to remove once the app is next touched.
-- **Repo root clutter**: 28 numbered `changesN.txt` files plus `plan.md`, `review.md`, `tutorial.md`, `etask.md`, `explorer_tasks.md`, and stray `*.log` files sit at the project root. Not user-facing, but worth archiving or deleting in a housekeeping pass so the repo itself is easier to navigate for whoever works on these suggestions next.
-- **Accessibility is a genuine strength, not a gap** — proper ARIA roles/labels, full keyboard navigation on both tab layers, live regions, and parallel plain-text renderings of KaTeX math are already in place. Worth explicitly preserving this bar as new features (color, animation, walkthroughs-for-all-topics) are added, rather than treating it as done and moving on.
+### Core mechanics
 
----
+- Move between two lanes by keyboard, pointer, or touch.
+- Fire a capsule into the active bay; switch bays with a key/button.
+- Send zero or impossible decoys to a recycle portal.
+- Spend a limited “projection scan” for a component hint.
+- Order captured terms as constant, linear, and quadratic after a wave.
 
-## Suggested sequencing
+Generate correct terms from the formatter and distractors through controlled sign, label, origin, or axis-assignment mutations.
 
-If tackled in order of effort vs. impact:
-1. Persist Fun Zone stats (#1) — small, isolated, high perceived-progress payoff.
-2. Persist `GuidedChallenges` progress (part of #3) — same pattern, same win, different topics.
-3. Extend Fun Zone's color palette to the rest of the app (#2) — visual, no new logic, makes everything else feel more finished.
-4. Cross-topic progress dashboard (#4) — ties #1–#3 together into a visible "course," reads existing localStorage data.
-5. Author Walkthrough task sets for the remaining four topics (#3) — largest content-authoring effort but closes the biggest feature gap.
-6. Everything else (adaptive quiz weighting, difficulty selector, grading fix, celebratory feedback, new topics) as incremental follow-ups.
+### Immediate feedback
+
+A correct term traces to its source: origin, velocity arrow, or gravity arrow. A wrong term bounces away with a specific reason, such as “Gravity has no component along horizontal `a`.” Wave completion compares the assembly with the engine result and highlights corrections.
+
+### Score and replayability
+
+Give points for correctness, speed, and order; a `1×`–`5×` combo; three hull lives; “No Scan” and perfect-wave bonuses; and a locally saved endless-mode score.
+
+### Difficulty
+
+- **Beginner:** one bay, default frame, color-coded term types.
+- **Intermediate:** two bays, moved origins, flips, decoys.
+- **Advanced:** swapped/custom labels, faster terms, no color categories.
+- **Expert:** sine/cosine projection terms and equivalent algebraic forms.
+
+### Arcade presentation
+
+Math capsules glow and streak into KaTeX-rendered slots; completed equations send a pulse along the fixed trajectory. Use a capture chime, descending sign-error tone, and low gravity sound. Icons/text duplicate all color cues.
+
+## 3. Origin Heist
+
+### Gameplay
+
+A top-down stealth/deduction game. The launch point is an “artifact,” and candidate origins are terminals at the cliff, ground, wall, and landing region. A mission supplies coordinates and component clues for an unknown frame. The player positions a survey drone and aims its orthogonal beams until the frame fits the evidence, while patrol sweeps add optional pressure. Unlike Frame Shift Frenzy, this is an inverse problem: infer rather than copy the frame.
+
+### Concepts reinforced
+
+Coordinates are displacement from an origin, not absolute position. Initial-coordinate signs locate the projectile relative to positive axes. Moving only the origin leaves velocity and acceleration unchanged. Mixed position, velocity, and acceleration clues identify directions and labels; partial clues may permit several valid frames.
+
+### Core mechanics
+
+- Move among origin anchors using keys or touch.
+- Rotate and flip two scanner beams.
+- Interpret clues like `q1,0 = -d1`, `v2,0 = v0`, or `a1 = -g`.
+- Spend scanner energy to reveal an extra clue.
+- Submit the inferred frame.
+
+Validate every solution with dot products rather than a lookup table.
+
+### Immediate feedback
+
+As the origin moves, position rows animate while velocity and acceleration rows stay visibly pinned. Submission checks each clue and draws its projection. If multiple frames are valid, accept all and explain their equivalence.
+
+### Score and replayability
+
+Offer three stars for correctness, few scans, and speed; three mission attempts; a district-based campaign; procedural clue contracts; and a “Mastermind” bonus for using minimal clues.
+
+### Difficulty
+
+- **Beginner:** two origins, visible axes, numeric guides.
+- **Intermediate:** four origins, one hidden direction, symbolic `H`, `h`, `d1`, `d2`.
+- **Advanced:** infer directions and labels from mixed clues.
+- **Expert:** rotated and intentionally underdetermined frames; find all solutions.
+
+### Arcade presentation
+
+Scanner beams sweep like lasers, projections appear as holograms, and correct terminals unlock with a grid ripple. Give position, velocity, and gravity different sound motifs. Include untimed practice and reduced motion.
+
+## 4. Gravity Groove
+
+### Gameplay
+
+A rhythm game with two lanes named after the current axes. Position, velocity, and acceleration cues approach a judgment line. The player taps the correct lane and sign (`+`, `−`, or `0`). Between phrases, the frame moves, flips, rotates, or relabels while the projectile continues unchanged.
+
+### Concepts reinforced
+
+Physical vectors can have positive, negative, or zero components. Gravity stays physically downward; horizontal launch velocity is not automatically an `x` component; rotated frames distribute vectors across both coordinates; label swaps move components to differently named lanes; current velocity changes while acceleration stays constant.
+
+### Core mechanics
+
+- Six remappable inputs: positive, negative, or zero for each lane.
+- Hold notes represent constant acceleration.
+- Paired notes represent projection onto two rotated axes.
+- Frame-change breaks preview the next orientation.
+- Call-and-response shows a world vector, then asks for its components.
+
+### Immediate feedback
+
+Every input gets rhythm and physics judgments: “Perfect: gravity points with positive `b`,” or “Sign miss: positive `y` points up, opposite gravity.” The matching projected arrow flashes. Wrong-lane messages address labels; wrong-sign messages address direction. A phrase recap displays the correct component table.
+
+### Score and replayability
+
+Score timing and physics separately. Physics streaks raise a multiplier even if timing is imperfect. An energy meter serves as lives in Arcade mode; Practice mode cannot fail. Unlock songs by concept and store grades, streaks, and skill improvement locally.
+
+### Difficulty
+
+- **Beginner:** loose timing, cardinal axes, one vector type per phrase.
+- **Intermediate:** mixed components and flips between measures.
+- **Advanced:** swaps, paired lanes, current velocity, faster changes.
+- **Expert:** non-cardinal angles plus qualitative magnitude or common-angle factors.
+
+### Arcade presentation
+
+The trajectory becomes a musical staff, arrows pulse on beat, and labels slide between lanes. Gravity notes fall in world space before splitting into coordinate lanes. Provide calibration, mute, visual beats, reduced flash, and reduced motion.
+
+## 5. Coordinate Crisis Control
+
+### Gameplay
+
+A real-time defense/triage game. Several student consoles surround the projectile scene, each proposing equations for a different frame. Some correctly describe the same motion; others contain one sabotage error—a bad origin term, reversed sign, misplaced gravity term, or label swap. The player approves valid consoles and repairs invalid ones before their timers expire. Later waves resemble a busy control-room game with simultaneous diagnoses.
+
+### Concepts reinforced
+
+Different equations may describe identical motion. Every term must trace to origin, direction, projection, or label. Origin movement affects only constants, flips affect all components on their axis, and gravity belongs to the named coordinate with a vertical component. Equations must be checked against the frame rather than memorized.
+
+### Core mechanics
+
+- Select a console to enlarge its frame, component table, and equations.
+- Approve it or drag a replacement sign, term, coefficient, or label into place.
+- Spend one “trace” per wave to connect terms to visual choices.
+- Chain repairs by error type for bonuses.
+- Support keyboard console selection and pointer/touch repair.
+
+Start from the engine's valid equation set and inject a tagged misconception so every error has a precise cause.
+
+### Immediate feedback
+
+Approval runs separate position, velocity, and acceleration checks. Correct consoles stabilize with “Same motion verified.” A wrong approval freezes its timer, isolates the failing row, and names the violated rule. Repairs validate against engine recomputation. The wave report groups errors by skill rather than only showing lost points.
+
+### Score and replayability
+
+Award speed/correctness points and unused-trace bonuses. A reactor meter serves as shared lives. Diagnosis streaks raise a multiplier and slow timers briefly. Campaign shifts add one error family at a time; endless mode mixes them. Local mastery data can weight future rounds toward weak skills.
+
+### Difficulty
+
+- **Beginner:** one console, highlighted suspect term, no countdown.
+- **Intermediate:** two consoles, moved origins/custom labels, hidden errors.
+- **Advanced:** three or four consoles, swaps, compound changes, zero decoys.
+- **Expert:** rotated trigonometric equations, equivalent forms, and fully correct waves where nothing should change.
+
+### Arcade presentation
+
+Consoles flicker near deadlines, verified equations pulse into the central trajectory, and repaired terms reconnect to source vectors. Pair alerts with icons and tones. Add pause-anytime, adjustable speed, mute, and reduced motion.
+
+## Shared implementation guidance
+
+All games should derive answers from the current transformation and equation formatter. Presets may seed rounds, but final answers should not be lookup tables. A shared pipeline should:
+
+1. Generate or select an orthogonal coordinate system.
+2. Project world position, velocity, and acceleration.
+3. Format valid component equations.
+4. Derive a prompt or inject one controlled, tagged misconception.
+5. Validate numeric components and semantic term roles, not fragile strings.
+
+Shared infrastructure can provide seeded randomness, difficulty profiles, score/streak/lives UI, audio management, reduced-motion settings, and versioned `localStorage`. Every game should offer untimed practice, keyboard and touch support, ARIA live feedback, and a textual diagram alternative.
+
+Together, these are five distinct styles—survival matching, shooter/sorting, stealth deduction, rhythm performance, and real-time triage—built around the same central lesson: the projectile's motion stays the same; only its coordinate description changes.

@@ -19,6 +19,32 @@ describe('interactive physics topic modules', () => {
     expect(activePanel().getByLabelText('Projectile Motion walkthrough progress')).toBeVisible();
   });
 
+  it('supports the full 0 to 90 degree projectile launch-angle range', () => {
+    render(<App />);
+    fireEvent.click(topics().getByRole('tab', { name: 'Projectile Motion' }));
+
+    const angle = activePanel().getByLabelText('Launch angle');
+    expect(angle).toHaveAttribute('min', '0');
+    expect(angle).toHaveAttribute('max', '90');
+
+    fireEvent.change(angle, { target: { value: '90' } });
+    expect(angle).toHaveValue('90');
+  });
+
+  it('keeps the projectile trajectory display scale fixed as inputs change', () => {
+    render(<App />);
+    fireEvent.click(topics().getByRole('tab', { name: 'Projectile Motion' }));
+
+    const scene = activePanel().getByRole('img', { name: /Projectile trajectory/ });
+    const initialPath = scene.querySelector('.topic-path')?.getAttribute('d');
+    fireEvent.change(activePanel().getByLabelText('Launch speed'), { target: { value: '30' } });
+    fireEvent.change(activePanel().getByLabelText('Launch angle'), { target: { value: '90' } });
+    const changedPath = scene.querySelector('.topic-path')?.getAttribute('d');
+
+    expect(scene).toHaveAttribute('viewBox', '0 0 720 380');
+    expect(changedPath).not.toEqual(initialPath);
+  });
+
   it('supports motion presets and immediate quiz feedback', () => {
     render(<App />);
     fireEvent.click(topics().getByRole('tab', { name: 'Motion Diagrams' }));

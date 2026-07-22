@@ -13,6 +13,35 @@ import {
 import type { Mode } from './ModeSwitcher';
 import { TopicWalkthrough, type WalkthroughStep } from './walkthroughs/TopicWalkthrough';
 
+export const projectileControlLimits = {
+  speed: { min: 6, max: 30 },
+  angleDegrees: { min: 0, max: 90 },
+  initialHeight: { min: 0, max: 12 },
+  gravity: { min: 2, max: 18 },
+} as const;
+
+const PROJECTILE_SCREEN_BOUNDS = {
+  left: 35,
+  right: 690,
+  top: 0,
+  ground: 325,
+} as const;
+
+export const projectileDisplayBounds = {
+  width: 110,
+  height: 65,
+} as const;
+
+export const mapProjectileToScreen = (position: { x: number; y: number }) => ({
+  x:
+    PROJECTILE_SCREEN_BOUNDS.left +
+    (position.x / projectileDisplayBounds.width) *
+      (PROJECTILE_SCREEN_BOUNDS.right - PROJECTILE_SCREEN_BOUNDS.left),
+  y:
+    PROJECTILE_SCREEN_BOUNDS.ground -
+    (position.y / projectileDisplayBounds.height) *
+      (PROJECTILE_SCREEN_BOUNDS.ground - PROJECTILE_SCREEN_BOUNDS.top),
+});
 const questions: ConceptQuestion[] = [
   { prompt: 'At the highest point of a projectile path, which statement is correct?', choices: ['Velocity and acceleration are both zero', 'Vertical velocity is zero; acceleration is downward', 'Acceleration is horizontal', 'Horizontal velocity is zero'], answer: 'Vertical velocity is zero; acceleration is downward', explanation: 'Gravity continues to act at the top. Only the vertical velocity component is momentarily zero.', skill: 'vectors' },
   { prompt: 'With right positive and up positive, what are the acceleration components?', choices: ['(0, −g)', '(g, 0)', '(0, g)', '(−g, −g)'], answer: '(0, −g)', explanation: 'The introductory model has no horizontal acceleration and gravity points downward.', skill: 'components' },
@@ -65,14 +94,13 @@ function ProjectileExplore({ inputs, onInputsChange, progress, onProgressChange 
   const time = (progress / 100) * flightTime;
   const state = projectileAtTime(inputs, time);
   const samples = useMemo(() => Array.from({ length: 61 }, (_, index) => projectileAtTime(inputs, (index / 60) * flightTime).position), [inputs, flightTime]);
-  const maxX = Math.max(...samples.map((sample) => sample.x), 1);
-  const maxY = Math.max(...samples.map((sample) => sample.y), 1);
-  const mapX = (x: number) => 55 + (x / maxX) * 610;
-  const mapY = (y: number) => 325 - (y / maxY) * 255;
+  const mapX = (x: number) => mapProjectileToScreen({ x, y: 0 }).x;
+  const mapY = (y: number) => mapProjectileToScreen({ x: 0, y }).y;
   const path = samples.map((sample, index) => `${index === 0 ? 'M' : 'L'} ${mapX(sample.x)} ${mapY(Math.max(0, sample.y))}`).join(' ');
   const pointX = mapX(state.position.x);
   const pointY = mapY(Math.max(0, state.position.y));
   const apexTime = (inputs.speed * Math.sin((inputs.angleDegrees * Math.PI) / 180)) / inputs.gravity;
+  const apexHeight = projectileAtTime(inputs, Math.max(0, apexTime)).position.y;
   const range = projectileAtTime(inputs, flightTime).position.x;
 
   const walkthroughSteps: WalkthroughStep[] = [
@@ -166,10 +194,10 @@ function ProjectileExplore({ inputs, onInputsChange, progress, onProgressChange 
         <section className="panel topic-controls" aria-labelledby="projectile-controls-heading">
           <div className="panel-title"><Gauge aria-hidden="true" size={20} /><h2 id="projectile-controls-heading">Launch Controls</h2></div>
           <div className="topic-control-grid">
-            <RangeControl label="Launch speed" value={inputs.speed} min={6} max={30} step={1} unit="m/s" onChange={(speed) => onInputsChange({ ...inputs, speed })} />
-            <RangeControl label="Launch angle" value={inputs.angleDegrees} min={0} max={75} step={1} unit="°" onChange={(angleDegrees) => onInputsChange({ ...inputs, angleDegrees })} />
-            <RangeControl label="Launch height" value={inputs.initialHeight} min={0} max={12} step={1} unit="m" onChange={(initialHeight) => onInputsChange({ ...inputs, initialHeight })} />
-            <RangeControl label="Gravity" value={inputs.gravity} min={2} max={18} step={0.1} unit="m/s²" onChange={(gravity) => onInputsChange({ ...inputs, gravity })} />
+            <RangeControl label="Launch speed" value={inputs.speed} min={projectileControlLimits.speed.min} max={projectileControlLimits.speed.max} step={1} unit="m/s" onChange={(speed) => onInputsChange({ ...inputs, speed })} />
+            <RangeControl label="Launch angle" value={inputs.angleDegrees} min={projectileControlLimits.angleDegrees.min} max={projectileControlLimits.angleDegrees.max} step={1} unit="°" onChange={(angleDegrees) => onInputsChange({ ...inputs, angleDegrees })} />
+            <RangeControl label="Launch height" value={inputs.initialHeight} min={projectileControlLimits.initialHeight.min} max={projectileControlLimits.initialHeight.max} step={1} unit="m" onChange={(initialHeight) => onInputsChange({ ...inputs, initialHeight })} />
+            <RangeControl label="Gravity" value={inputs.gravity} min={projectileControlLimits.gravity.min} max={projectileControlLimits.gravity.max} step={0.1} unit="m/s²" onChange={(gravity) => onInputsChange({ ...inputs, gravity })} />
           </div>
           <RangeControl label="Flight progress" value={progress} min={0} max={100} step={1} unit="%" onChange={onProgressChange} />
         </section>
@@ -195,6 +223,7 @@ function ProjectileExplore({ inputs, onInputsChange, progress, onProgressChange 
           <MetricGrid metrics={[
             { label: 'Flight time', value: `${formatPhysicsNumber(flightTime)} s` },
             { label: 'Range', value: `${formatPhysicsNumber(projectileAtTime(inputs, flightTime).position.x)} m` },
+            { label: 'Apex height', value: `${formatPhysicsNumber(apexHeight)} m` },
             { label: 'Apex time', value: `${formatPhysicsNumber(Math.max(0, apexTime))} s` },
             { label: 'Model', value: 'Constant g, no drag' },
           ]} />
