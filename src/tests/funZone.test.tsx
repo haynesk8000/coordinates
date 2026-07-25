@@ -71,6 +71,8 @@ describe('Fun Zone', () => {
   it('lets a student pick a fixed difficulty instead of the automatic ramp', () => {
     openFunZone();
 
+    const selector = screen.getByRole('navigation', { name: 'Fun Zone activities' });
+    fireEvent.click(within(selector).getByRole('button', { name: /Radar Reader/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Hard' }));
     expect(screen.getByLabelText('Difficulty 80%')).toBeVisible();
   });
@@ -81,11 +83,15 @@ describe('Fun Zone', () => {
     ]);
   });
 
-  it('levels up after three correct answers and makes plotting harder', () => {
+  it('keeps Target Plotter on a fixed negative 7 to 7 grid without difficulty levels', () => {
     openFunZone();
 
-    expect(screen.getByLabelText('Difficulty 0%')).toBeVisible();
-    expect(within(screen.getByRole('combobox', { name: 'x' })).getAllByRole('option')).toHaveLength(5);
+    expect(screen.queryByLabelText(/Difficulty \d+%/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Difficulty mode' })).not.toBeInTheDocument();
+    expect(within(screen.getByRole('combobox', { name: 'x' })).getAllByRole('option')).toHaveLength(15);
+    expect(within(screen.getByRole('combobox', { name: 'x' })).getByRole('option', { name: '-7' })).toBeVisible();
+    expect(within(screen.getByRole('combobox', { name: 'x' })).getByRole('option', { name: '7' })).toBeVisible();
+    expect(screen.getByTestId('plot-target')).toHaveTextContent('−7 to 7');
 
     for (let answerIndex = 0; answerIndex < 3; answerIndex += 1) {
       const target = currentPlotTarget();
@@ -93,10 +99,9 @@ describe('Fun Zone', () => {
       if (answerIndex < 2) fireEvent.click(screen.getByRole('button', { name: /Next challenge/ }));
     }
 
-    expect(screen.getByLabelText('Difficulty 20%')).toBeVisible();
-    expect(screen.getByText('Difficulty increased to 20%!')).toBeVisible();
+    expect(screen.queryByText(/Difficulty increased/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Next challenge/ }));
-    expect(within(screen.getByRole('combobox', { name: 'x' })).getAllByRole('option')).toHaveLength(7);
+    expect(within(screen.getByRole('combobox', { name: 'x' })).getAllByRole('option')).toHaveLength(15);
   });
 });

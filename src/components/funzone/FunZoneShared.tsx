@@ -157,6 +157,7 @@ export function GameShell({
   stats,
   difficulty,
   override,
+  showDifficulty = true,
   children,
 }: {
   icon: LucideIcon;
@@ -168,6 +169,7 @@ export function GameShell({
   stats: Stats;
   difficulty: number;
   override: DifficultyOverride;
+  showDifficulty?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -180,7 +182,15 @@ export function GameShell({
         </div>
       </div>
       <p className="fun-instructions"><strong>How to play:</strong> {instructions}</p>
-      <ScoreStrip stats={stats} difficulty={difficulty} override={override} />
+      {showDifficulty
+        ? <ScoreStrip stats={stats} difficulty={difficulty} override={override} />
+        : (
+          <div className="fun-score-strip" aria-label="Game score">
+            <span><strong>{stats.correct}</strong> points</span>
+            <span><strong>{stats.attempts === 0 ? 0 : Math.round((stats.correct / stats.attempts) * 100)}%</strong> accuracy</span>
+            <span><strong>{stats.streak}</strong> streak</span>
+          </div>
+        )}
       {children}
     </section>
   );
@@ -193,6 +203,7 @@ export type GameMeta<GameId extends string> = {
   skill: string;
   icon: LucideIcon;
   color: string;
+  showDifficulty?: boolean;
 };
 
 export function FunZoneHero({
@@ -202,6 +213,7 @@ export function FunZoneHero({
   description,
   override,
   onOverrideChange,
+  showDifficulty = true,
 }: {
   eyebrow: string;
   totalCorrect: number;
@@ -209,6 +221,7 @@ export function FunZoneHero({
   description: string;
   override: DifficultyOverride;
   onOverrideChange: (value: DifficultyOverride) => void;
+  showDifficulty?: boolean;
 }) {
   return (
     <section className="fun-zone-hero" aria-labelledby="fun-zone-heading">
@@ -216,10 +229,12 @@ export function FunZoneHero({
         <p className="eyebrow">{eyebrow}</p>
         <h2 id="fun-zone-heading"><Gamepad2 aria-hidden="true" /> Choose your next challenge</h2>
         <p>{description}</p>
-        <div className="fun-difficulty-row">
-          <span>Difficulty</span>
-          <DifficultySelector value={override} onChange={onOverrideChange} />
-        </div>
+        {showDifficulty && (
+          <div className="fun-difficulty-row">
+            <span>Difficulty</span>
+            <DifficultySelector value={override} onChange={onOverrideChange} />
+          </div>
+        )}
       </div>
       <div className="fun-total-score" aria-label={`${totalCorrect} total points from ${totalAttempts} attempts`}>
         <strong>{totalCorrect}</strong><span>Total points</span><small>{totalAttempts} attempts</small>
@@ -253,7 +268,10 @@ export function GameSelectorNav<GameId extends string>({
           >
             <span className="fun-selector-icon"><Icon aria-hidden="true" /></span>
             <span><strong>{game.title}</strong><small>{game.tagline}</small></span>
-            <span className="fun-mini-score">{allStats[game.id].correct} pts • {difficultyFromCorrect(allStats[game.id].correct)}%</span>
+            <span className="fun-mini-score">
+              {allStats[game.id].correct} pts
+              {game.showDifficulty !== false && ` • ${difficultyFromCorrect(allStats[game.id].correct)}%`}
+            </span>
           </button>
         );
       })}

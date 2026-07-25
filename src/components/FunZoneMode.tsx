@@ -24,7 +24,7 @@ type GameId = 'plot' | 'read' | 'translate' | 'rotate' | 'relate';
 const gameIds: GameId[] = ['plot', 'read', 'translate', 'rotate', 'relate'];
 
 const games: Array<GameMeta<GameId>> = [
-  { id: 'plot', title: 'Target Plotter', tagline: 'Hit the ordered pair', skill: 'Plotting points', icon: Crosshair, color: 'coral' },
+  { id: 'plot', title: 'Target Plotter', tagline: 'Hit the ordered pair', skill: 'Plotting points', icon: Crosshair, color: 'coral', showDifficulty: false },
   { id: 'read', title: 'Radar Reader', tagline: 'Decode the signal', skill: 'Reading coordinates', icon: Radar, color: 'blue' },
   { id: 'translate', title: 'Translation Trek', tagline: 'Move the rover', skill: 'Translation', icon: MoveRight, color: 'green' },
   { id: 'rotate', title: 'Rotation Reactor', tagline: 'Spin around the origin', skill: 'Rotation', icon: RotateCw, color: 'purple' },
@@ -143,8 +143,7 @@ function CoordinateGrid({
 type ActivityProps = { stats: Stats; override: DifficultyOverride; onResult: (correct: boolean) => void };
 
 function TargetPlotter({ stats, override, onResult }: ActivityProps) {
-  const level = levelFromDifficulty(difficultyForStats(stats, override));
-  const range = 2 + level;
+  const range = 7;
   const coordinateValues = coordinateValuesForRange(range);
   const [target, setTarget] = useState(() => randomPoint(range));
   const [selected, setSelected] = useState<Point | null>(null);
@@ -155,14 +154,12 @@ function TargetPlotter({ stats, override, onResult }: ActivityProps) {
     setSelected(point);
     const correct = samePoint(point, target);
     onResult(correct);
-    setFeedback(feedbackWithProgress(
+    setFeedback({
       correct,
-      correct
+      message: correct
         ? `Bullseye! You plotted ${pointLabel(target)}.`
         : `You chose ${pointLabel(point)}. The target was ${pointLabel(target)}: x first, then y.`,
-      stats,
-      override,
-    ));
+    });
   };
   const next = () => {
     setTarget(randomPoint(range));
@@ -171,7 +168,7 @@ function TargetPlotter({ stats, override, onResult }: ActivityProps) {
   };
 
   return (
-    <GameShell icon={Crosshair} color="coral" skill="Plotting points" title="Target Plotter" headingId="plot-game-heading" instructions="Plot the target ordered pair on the grid. Click the grid, or use the keyboard-friendly coordinate picker." stats={stats} difficulty={difficultyForStats(stats, override)} override={override}>
+    <GameShell icon={Crosshair} color="coral" skill="Plotting points" title="Target Plotter" headingId="plot-game-heading" instructions="Plot the target ordered pair on the grid. Click the grid, or use the keyboard-friendly coordinate picker." stats={stats} difficulty={0} override={override} showDifficulty={false}>
       <div className="fun-prompt" data-testid="plot-target">Plot <strong>{pointLabel(target)}</strong> <small>Range: −{range} to {range}</small></div>
       <div className="fun-play-grid">
         <CoordinateGrid range={range} interactive={!feedback} selected={selected} onSelect={submit} ariaLabel={`Blank coordinate grid from negative ${range} to ${range}. Plot ${pointLabel(target)}.`} />
@@ -387,9 +384,12 @@ export function FunZoneMode() {
         eyebrow="Coordinate Arcade • 5 games"
         totalCorrect={totalCorrect}
         totalAttempts={totalAttempts}
-        description="Every game starts at 0% difficulty and levels up by 20% after every three correct answers, or pick a fixed difficulty yourself. Your best streaks are saved in this browser."
+        description={activeGame === 'plot'
+          ? 'Plot ordered pairs on a fixed coordinate grid where both x and y run from −7 to 7. Your best streak is saved in this browser.'
+          : 'These games ramp up with your score, or you can choose a fixed difficulty. Your best streaks are saved in this browser.'}
         override={override}
         onOverrideChange={setOverride}
+        showDifficulty={activeGame !== 'plot'}
       />
 
       <GameSelectorNav games={games} activeGame={activeGame} onSelect={setActiveGame} allStats={allStats} />
