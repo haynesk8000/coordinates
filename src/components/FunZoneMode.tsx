@@ -1,4 +1,4 @@
-import { useMemo, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { Crosshair, MoveRight, Radar, RotateCw, Sparkles } from 'lucide-react';
 import {
   difficultyForStats,
@@ -43,6 +43,28 @@ const randomPoint = (range = 4, allowOrigin = true): Point => {
 const pointLabel = (point: Point) => `(${point.x}, ${point.y})`;
 const samePoint = (first: Point, second: Point) => first.x === second.x && first.y === second.y;
 
+export function coordinateFromGridPointer(
+  clientPoint: Point,
+  bounds: { left: number; top: number; width: number; height: number },
+  range: number,
+): Point {
+  const viewBoxSize = 360;
+  const origin = viewBoxSize / 2;
+  const gridStep = 150 / range;
+  const renderedScale = Math.min(bounds.width / viewBoxSize, bounds.height / viewBoxSize);
+  const renderedWidth = viewBoxSize * renderedScale;
+  const renderedHeight = viewBoxSize * renderedScale;
+  const horizontalLetterbox = (bounds.width - renderedWidth) / 2;
+  const verticalLetterbox = (bounds.height - renderedHeight) / 2;
+  const viewBoxX = (clientPoint.x - bounds.left - horizontalLetterbox) / renderedScale;
+  const viewBoxY = (clientPoint.y - bounds.top - verticalLetterbox) / renderedScale;
+
+  return {
+    x: Math.max(-range, Math.min(range, Math.round((viewBoxX - origin) / gridStep))),
+    y: Math.max(-range, Math.min(range, Math.round((origin - viewBoxY) / gridStep))),
+  };
+}
+
 function makePointChoices(answer: Point, range: number, count: number): Point[] {
   const candidates = [
     answer,
@@ -85,12 +107,11 @@ function CoordinateGrid({
   const selectFromPointer = (event: MouseEvent<SVGSVGElement>) => {
     if (!interactive || !onSelect) return;
     const bounds = event.currentTarget.getBoundingClientRect();
-    const screenX = ((event.clientX - bounds.left) / bounds.width) * size;
-    const screenY = ((event.clientY - bounds.top) / bounds.height) * size;
-    onSelect({
-      x: Math.max(-range, Math.min(range, Math.round((screenX - origin) / step))),
-      y: Math.max(-range, Math.min(range, Math.round((origin - screenY) / step))),
-    });
+    onSelect(coordinateFromGridPointer(
+      { x: event.clientX, y: event.clientY },
+      bounds,
+      range,
+    ));
   };
 
   return (
@@ -142,6 +163,8 @@ function CoordinateGrid({
 
 type ActivityProps = { stats: Stats; override: DifficultyOverride; onResult: (correct: boolean) => void };
 
+type ClimberPhase = 'idle' | 'climbing' | 'fall-low' | 'fall-mid' | 'fall-fatal' | 'victory' | 'game-over';
+
 function TargetPlotter({ stats, override, onResult }: ActivityProps) {
   const range = 7;
   const coordinateValues = coordinateValuesForRange(range);
@@ -149,8 +172,53 @@ function TargetPlotter({ stats, override, onResult }: ActivityProps) {
   const [selected, setSelected] = useState<Point | null>(null);
   const [keyboardPoint, setKeyboardPoint] = useState<Point>({ x: 0, y: 0 });
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [gender, setGender] = useState<'female' | 'male'>(() => Math.random() < 0.5 ? 'female' : 'male');
+  const [phase, setPhase] = useState<ClimberPhase>('idle');
+  const timers = useRef<number[]>([]);
+  const audioContext = useRef<AudioContext | null>(null);
+  const clearTimers = () => {
+    timers.current.forEach((timer) => window.clearTimeout(timer));
+    timers.current = [];
+  };
+  const after = (delay: number, callback: () => void) => timers.current.push(window.setTimeout(callback, delay));
+  useEffect(() => () => {
+    clearTimers();
+    void audioContext.current?.close();
+  }, []);
+  const playSound = (kind: 'climb' | 'scream' | 'light-impact' | 'heavy-impact' | 'victory') => {
+    if (typeof AudioContext === 'undefined') return;
+    const context = audioContext.current ?? new AudioContext();
+    audioContext.current = context;
+    void context.resume();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const [frequency, duration, volume, type] = {
+      climb: [210, 0.14, 0.04, 'square'],
+      scream: [620, 0.9, 0.08, 'sawtooth'],
+      'light-impact': [105, 0.22, 0.08, 'square'],
+      'heavy-impact': [68, 0.4, 0.14, 'square'],
+      victory: [440, 0.75, 0.1, 'triangle'],
+    }[kind] as [number, number, number, OscillatorType];
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(kind === 'victory' ? frequency * 2 : Math.max(35, frequency / 3), context.currentTime + duration);
+    gain.gain.setValueAtTime(volume, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + duration);
+  };
+  const presentNextQuestion = () => {
+    setTarget(randomPoint(range));
+    setSelected(null);
+    setKeyboardPoint({ x: 0, y: 0 });
+    setFeedback(null);
+    setPhase('idle');
+  };
+  const locked = phase !== 'idle' || Boolean(feedback);
   const submit = (point: Point) => {
-    if (feedback) return;
+    if (locked) return;
     setSelected(point);
     const correct = samePoint(point, target);
     onResult(correct);
@@ -160,29 +228,79 @@ function TargetPlotter({ stats, override, onResult }: ActivityProps) {
         ? `Bullseye! You plotted ${pointLabel(target)}.`
         : `You chose ${pointLabel(point)}. The target was ${pointLabel(target)}: x first, then y.`,
     });
+    if (correct) {
+      const destination = Math.min(100, progress + 10);
+      setPhase('climbing');
+      playSound('climb');
+      after(850, () => {
+        setProgress(destination);
+        if (destination === 100) {
+          setPhase('victory');
+          playSound('victory');
+        } else {
+          presentNextQuestion();
+        }
+      });
+    } else if (progress > 0) {
+      const fallPhase: ClimberPhase = progress <= 20 ? 'fall-low' : progress <= 60 ? 'fall-mid' : 'fall-fatal';
+      setPhase(fallPhase);
+      after(150, () => playSound('scream'));
+      after(fallPhase === 'fall-low' ? 550 : 750, () => playSound(fallPhase === 'fall-low' ? 'light-impact' : 'heavy-impact'));
+      after(fallPhase === 'fall-fatal' ? 1250 : 1800, () => {
+        if (fallPhase === 'fall-fatal') setPhase('game-over');
+        else {
+          setProgress(0);
+          presentNextQuestion();
+        }
+      });
+    } else {
+      // Even a miss from the ground is a complete round. Keep input locked long
+      // enough for the result to be recognized before presenting a new target.
+      after(1100, presentNextQuestion);
+    }
   };
-  const next = () => {
+  const newGame = () => {
+    clearTimers();
+    void audioContext.current?.close();
+    audioContext.current = null;
     setTarget(randomPoint(range));
     setSelected(null);
+    setKeyboardPoint({ x: 0, y: 0 });
     setFeedback(null);
+    setProgress(0);
+    setGender(Math.random() < 0.5 ? 'female' : 'male');
+    setPhase('idle');
   };
 
   return (
-    <GameShell icon={Crosshair} color="coral" skill="Plotting points" title="Target Plotter" headingId="plot-game-heading" instructions="Plot the target ordered pair on the grid. Click the grid, or use the keyboard-friendly coordinate picker." stats={stats} difficulty={0} override={override} showDifficulty={false}>
+    <GameShell icon={Crosshair} color="coral" skill="Plotting points" title="Target Plotter" headingId="plot-game-heading" instructions="Plot each ordered pair correctly to help the climber reach the platform. Each correct answer climbs one rung." stats={stats} difficulty={0} override={override} showDifficulty={false}>
       <div className="fun-prompt" data-testid="plot-target">Plot <strong>{pointLabel(target)}</strong> <small>Range: −{range} to {range}</small></div>
-      <div className="fun-play-grid">
-        <CoordinateGrid range={range} interactive={!feedback} selected={selected} onSelect={submit} ariaLabel={`Blank coordinate grid from negative ${range} to ${range}. Plot ${pointLabel(target)}.`} />
-        <div className="fun-control-card">
-          <h3>Coordinate picker</h3>
-          <div className="coordinate-picker">
-            <label>x<select value={keyboardPoint.x} onChange={(event) => setKeyboardPoint((current) => ({ ...current, x: Number(event.target.value) }))}>{coordinateValues.map((value) => <option key={value}>{value}</option>)}</select></label>
-            <label>y<select value={keyboardPoint.y} onChange={(event) => setKeyboardPoint((current) => ({ ...current, y: Number(event.target.value) }))}>{coordinateValues.map((value) => <option key={value}>{value}</option>)}</select></label>
+      <div className="ladder-game-layout">
+        <CoordinateGrid range={range} interactive={!locked} selected={selected} onSelect={submit} ariaLabel={`Blank coordinate grid from negative ${range} to ${range}. Plot ${pointLabel(target)}.`} />
+        <section className={`ladder-scene phase-${phase}`} aria-label={`${gender} climber at ${progress}% of the ladder`}>
+          <div className="ladder-platform"><span>FINISH</span></div>
+          <div className="ladder">{Array.from({ length: 11 }, (_, index) => <span key={index} style={{ bottom: `${index * 9}%` }} />)}</div>
+          <div className="ladder-climber" style={{ '--climb-progress': progress } as CSSProperties}>
+            <span className={`climber-head ${gender}`} /><span className="climber-body" />
+            <span className="climber-arm left" /><span className="climber-arm right" />
+            <span className="climber-leg left" /><span className="climber-leg right" />
           </div>
-          <button type="button" className="fun-primary-button" disabled={Boolean(feedback)} onClick={() => submit(keyboardPoint)}>Plot this point</button>
-          <p className="fun-tip">Remember: move along x first, then move along y.</p>
-        </div>
+          {phase === 'victory' && <div className="ladder-confetti" aria-hidden="true">✦ 🎉 ✦</div>}
+          {phase === 'victory' && <div className="ladder-result" role="status">Platform reached! You win!</div>}
+          {phase === 'game-over' && <div className="ladder-game-over" role="alert"><strong>Game Over</strong><span>The climber fell from too high.</span><button type="button" onClick={newGame}>Start new game</button></div>}
+          <progress max="100" value={progress} aria-label="Ladder progress" />
+          <span className="ladder-progress-label">{progress}% climbed</span>
+        </section>
       </div>
-      {feedback && <FeedbackBanner feedback={feedback} onNext={next} />}
+      <div className="ladder-answer-bar" aria-label="Choose coordinates">
+        <label>x<select value={keyboardPoint.x} disabled={locked} onChange={(event) => setKeyboardPoint((current) => ({ ...current, x: Number(event.target.value) }))}>{coordinateValues.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label>y<select value={keyboardPoint.y} disabled={locked} onChange={(event) => setKeyboardPoint((current) => ({ ...current, y: Number(event.target.value) }))}>{coordinateValues.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <button type="button" className="fun-primary-button" disabled={locked} onClick={() => submit(keyboardPoint)}>Plot this point</button>
+        {(phase === 'victory' || phase === 'game-over') && <button type="button" onClick={newGame}>New game</button>}
+      </div>
+      {feedback && phase !== 'victory' && phase !== 'game-over' && (
+        <FeedbackBanner feedback={feedback} onNext={() => {}} autoAdvance />
+      )}
     </GameShell>
   );
 }

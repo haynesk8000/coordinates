@@ -1251,6 +1251,52 @@ textarea {
   background: white;
 }
 
+.ladder-game-layout { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(280px, .9fr); gap: 1rem; align-items: stretch; }
+.ladder-game-layout .coordinate-game-grid { width: 100%; max-height: 390px; }
+.ladder-scene { position: relative; min-height: 360px; overflow: hidden; border: 1px solid #b9c8db; border-radius: 18px; background: linear-gradient(#bfe6ff 0 72%, #d7c493 72% 100%); }
+.ladder-scene::before { content: ""; position: absolute; inset: 72% 0 auto; height: 4px; background: #70543a; }
+.ladder-platform { position: absolute; z-index: 2; top: 25px; left: calc(50% - 64px); width: 128px; height: 18px; border: 4px solid #493b33; border-radius: 4px; background: #817268; }
+.ladder-platform span { position: absolute; top: -23px; left: 30px; color: #573a23; font-size: .72rem; font-weight: 900; }
+.ladder { position: absolute; top: 42px; bottom: 95px; left: calc(50% - 36px); width: 72px; border-inline: 7px solid #a66b35; }
+.ladder span { position: absolute; left: 0; width: 100%; height: 5px; border-radius: 3px; background: #c1874f; box-shadow: 0 1px #70441e; }
+.ladder-climber { --climb-progress: 0; position: absolute; z-index: 3; bottom: calc(77px + var(--climb-progress) * 2.36px); left: calc(50% - 17px); width: 34px; height: 58px; transform-origin: center bottom; }
+.climber-head { position: absolute; top: 0; left: 10px; width: 15px; height: 15px; border: 2px solid #52382d; border-radius: 50%; background: #b87351; }
+.climber-head.female::after { content: ""; position: absolute; top: -3px; left: -5px; width: 21px; height: 13px; border-radius: 50% 50% 40% 40%; border-top: 5px solid #4b2e22; }
+.climber-head.male::after { content: ""; position: absolute; inset: -3px -2px auto; border-top: 5px solid #39271f; border-radius: 50%; }
+.climber-body { position: absolute; top: 17px; left: 10px; width: 15px; height: 22px; border-radius: 5px; background: #285f9e; }
+.climber-arm, .climber-leg { position: absolute; width: 6px; border-radius: 4px; transform-origin: top; background: #b87351; }
+.climber-arm { top: 19px; height: 23px; }
+.climber-leg { top: 37px; height: 22px; background: #243853; }
+.climber-arm.left, .climber-leg.left { left: 7px; transform: rotate(28deg); }
+.climber-arm.right, .climber-leg.right { right: 6px; transform: rotate(-28deg); }
+.phase-climbing .ladder-climber { animation: ladder-climb 850ms ease-in-out both; }
+.phase-climbing .climber-arm.left, .phase-climbing .climber-leg.right { animation: climbing-limb-left 300ms ease-in-out infinite alternate; }
+.phase-climbing .climber-arm.right, .phase-climbing .climber-leg.left { animation: climbing-limb-right 300ms ease-in-out infinite alternate; }
+.phase-fall-low .ladder-climber { animation: ladder-fall-low 1800ms ease-in-out both; }
+.phase-fall-mid .ladder-climber { animation: ladder-fall-mid 1800ms ease-in both; }
+.phase-fall-fatal .ladder-climber { animation: ladder-fall-fatal 1250ms cubic-bezier(.55,.05,.9,.45) both; }
+.phase-victory .ladder-climber { animation: ladder-dance 500ms ease-in-out infinite alternate; }
+@keyframes ladder-climb { to { transform: translateY(-24px); } }
+@keyframes climbing-limb-left { to { transform: rotate(-38deg); } }
+@keyframes climbing-limb-right { to { transform: rotate(38deg); } }
+@keyframes ladder-fall-low { 0% { transform: translate(0, 0); } 34% { transform: translate(20px, calc(var(--climb-progress) * 2.36px)) rotate(22deg); } 55%, 75% { transform: translate(20px, calc(var(--climb-progress) * 2.36px)) scaleY(.65) rotate(-8deg); } 100% { transform: translate(0, calc(var(--climb-progress) * 2.36px)); } }
+@keyframes ladder-fall-mid { 0% { transform: translate(0, 0); } 46% { transform: translate(34px, calc(var(--climb-progress) * 2.36px)) rotate(110deg); } 65%, 78% { transform: translate(34px, calc(var(--climb-progress) * 2.36px)) rotate(90deg) scaleY(.8); } 100% { transform: translate(0, calc(var(--climb-progress) * 2.36px)); } }
+@keyframes ladder-fall-fatal { 0% { transform: translate(0, 0); } 45% { transform: translate(-32px, calc(var(--climb-progress) * 1.1px)) rotate(-210deg); } 100% { transform: translate(46px, calc(var(--climb-progress) * 2.36px)) rotate(-520deg) scaleY(.65); } }
+@keyframes ladder-dance { to { transform: translateY(-7px) rotate(8deg) scaleX(.92); } }
+.ladder-scene progress { position: absolute; right: 12px; bottom: 42px; width: 100px; }
+.ladder-progress-label { position: absolute; right: 12px; bottom: 18px; color: #3e342c; font-size: .76rem; font-weight: 850; }
+.ladder-confetti { position: absolute; z-index: 5; top: 52px; width: 100%; text-align: center; font-size: 2rem; animation: ladder-confetti 700ms ease-out infinite alternate; }
+.ladder-result { position: absolute; z-index: 6; top: 105px; left: 50%; translate: -50%; width: max-content; padding: .55rem .8rem; border-radius: 10px; color: #164b30; background: #edfbf3; font-weight: 900; }
+@keyframes ladder-confetti { to { transform: translateY(25px) rotate(8deg); } }
+.ladder-game-over { position: absolute; z-index: 8; inset: 0; display: grid; place-content: center; gap: .55rem; padding: 1rem; color: white; background: rgb(33 25 27 / 90%); text-align: center; }
+.ladder-game-over strong { font-size: 2rem; }
+.ladder-answer-bar { display: grid; grid-template-columns: 90px 90px minmax(150px, 1fr) auto; gap: .65rem; align-items: end; margin-top: .85rem; }
+.ladder-answer-bar label { display: grid; gap: .2rem; color: #4b5264; font-weight: 800; }
+.ladder-answer-bar select { min-height: 42px; border: 1px solid #aeb5c5; border-radius: 8px; padding-inline: .5rem; background: white; }
+.ladder-answer-bar .fun-primary-button { min-height: 42px; }
+@media (max-width: 760px) { .ladder-game-layout { grid-template-columns: 1fr; } .ladder-answer-bar { grid-template-columns: 1fr 1fr; } .ladder-answer-bar button { grid-column: 1 / -1; } }
+@media (prefers-reduced-motion: reduce) { .ladder-climber, .ladder-climber * { animation-duration: 1ms !important; animation-iteration-count: 1 !important; } }
+
 .fun-primary-button,
 .fun-feedback button {
   display: inline-flex;

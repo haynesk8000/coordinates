@@ -127,12 +127,22 @@ export function ScoreStrip({
   );
 }
 
-export function FeedbackBanner({ feedback, onNext }: { feedback: Feedback; onNext: () => void }) {
+export function FeedbackBanner({
+  feedback,
+  onNext,
+  disabled = false,
+  autoAdvance = false,
+}: {
+  feedback: Feedback;
+  onNext: () => void;
+  disabled?: boolean;
+  autoAdvance?: boolean;
+}) {
   return (
     <div className={`fun-feedback ${feedback.correct ? 'correct' : 'incorrect'}`} role="status">
       {feedback.correct ? <CheckCircle2 aria-hidden="true" /> : <XCircle aria-hidden="true" />}
       <div>
-        <strong>{feedback.correct ? 'Nice work!' : 'Good try!'}</strong>
+        <strong>{autoAdvance ? (feedback.correct ? 'Correct!' : 'Incorrect') : (feedback.correct ? 'Nice work!' : 'Good try!')}</strong>
         <p>{feedback.message}</p>
         {feedback.difficultyIncrease !== undefined && (
           <p className="fun-level-up fun-celebrate">
@@ -140,9 +150,13 @@ export function FeedbackBanner({ feedback, onNext }: { feedback: Feedback; onNex
           </p>
         )}
       </div>
-      <button type="button" onClick={onNext}>
-        <RefreshCw aria-hidden="true" size={17} /> Next challenge
-      </button>
+      {autoAdvance
+        ? <span aria-label="Next question will appear automatically">Next question loading…</span>
+        : (
+          <button type="button" onClick={onNext} disabled={disabled}>
+            <RefreshCw aria-hidden="true" size={17} /> Next challenge
+          </button>
+        )}
     </div>
   );
 }

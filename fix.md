@@ -1,117 +1,45 @@
 **AI Agent Task: Update the Target Plotter (Fun Zone → Coordinate System Tab)**
 
-Replace the current **Coordinate Picker** game with a new ladder-climbing game while preserving the existing coordinate question and answer logic.
+Modify the game flow so that each question is fully resolved before the next question is presented.
 
-## 1. Replace the Coordinate Picker Interface
+### Required Behavior
 
-* Remove the entire **Coordinate Picker** frame and its associated graphics.
-* Replace it with a scene containing:
+After the user submits an answer for a coordinate placement question:
 
-  * A ladder extending from the ground to a raised platform.
-  * A climber standing at the base of the ladder at the start of the game.
-  * A platform at the top representing successful completion of the game.
-* At the beginning of each new game, randomly select the climber's gender (male or female).
+1. **Evaluate the Answer**
 
+   * Determine whether the user's selected coordinate is correct.
+   * Compare the selected coordinate to the expected coordinate using the existing validation logic.
 
-## 2. Correct Answer Behavior
+2. **Provide Immediate Feedback**
 
-Each correct answer advances the climber **10% of the ladder height**.
+   * Clearly indicate whether the answer is **Correct** or **Incorrect**.
+   * Display the appropriate visual and audio feedback associated with the result.
+   * Allow sufficient time for the player to recognize the outcome before continuing.
 
-Requirements:
+3. **Update the Game State**
 
-* Animate the climber ascending the ladder.
-* The climbing animation should include realistic climbing motions (arms and legs moving).
-* Update the climber's position only after the climbing animation completes.
-* Continue this process until the climber reaches the platform.
+   * If the answer is correct:
 
-## 3. Incorrect Answer Behavior
+     * Advance the climber according to the existing game rules.
+   * If the answer is incorrect:
 
-If the user answers incorrectly, animate the climber falling from their current position.
+     * Execute the appropriate fall animation and resulting game-state changes based on the climber's current height.
 
-The fall animation and landing sequence must depend on the climber's current height.
+4. **Present the Next Question**
 
-### Case 1: Climber on the Ground (0%)
+   * After all feedback, animations, and state updates have completed, automatically generate and display the next coordinate placement question.
+   * Do not display the next question while feedback or animations from the previous question are still in progress.
 
-* Do **not** animate a fall.
-* Leave the climber standing at the bottom of the ladder.
+### Continue Gameplay
 
-### Case 2: Climber Between 10% and 20% Up the Ladder
+Repeat this sequence for every question until one of the following conditions occurs:
 
-* Animate the climber falling to the ground.
-* After landing, the climber should land in a dramatic **superhero kneeling pose**.
-* Pause briefly.
-* Animate the climber standing back up and returning to the starting position.
+* **Victory:** The climber successfully reaches the platform. Display the existing celebration sequence and end the game.
+* **Game Over:** The climber suffers a fatal fall according to the existing game rules. Display the Game Over sequence and end the game.
 
-### Case 3: Climber Between 30% and 60% Up the Ladder
+### Additional Requirements
 
-* Animate the climber falling.
-* The climber lands flat on the ground.
-* Pause briefly.
-* Animate the climber slowly getting back up.
-* Return the climber to the base of the ladder.
-
-### Case 4: Climber Above 60% Up the Ladder
-
-* Animate the climber falling from their current position.
-* Use the most dramatic fall animation of the game.
-* This fall results in the climber's death.
-* Display a clear **Game Over** screen.
-* Disable further gameplay until the user starts a new game.
-
-## 4. Fall Animations
-
-Each fall animation should:
-
-* Begin from the climber's current position on the ladder.
-* Follow a realistic downward trajectory.
-* Be visually different depending on the fall category.
-* Include appropriate landing animations.
-* Return control to the player only after the animation sequence completes (except for the Game Over case).
-
-## 5. Winning the Game
-
-When the climber reaches the platform:
-
-* Animate the climber stepping onto the platform and doing a dance.
-* Play a celebratory animation (for example, cheering, waving, confetti, or fireworks).
-* Display a clear success message.
-* Prevent further climbing until a new game begins.
-
-## 6. Sound Effects
-
-Add synchronized audio effects for the following events:
-
-### Climbing
-
-* Optional climbing sounds (footsteps or ladder movement).
-
-### Falling
-
-* A scream that begins shortly after the fall starts.
-* The scream should continue naturally during the fall.
-
-### Landing
-
-* A realistic impact sound synchronized with the landing animation.
-* Use different impact sounds appropriate to the landing severity.
-
-### Victory
-
-* Play a celebratory sound synchronized with the victory animation.
-
-## 8. Game State Management
-
-Ensure the following behavior:
-
-* Reset all animations, sounds, and character state when a new game starts.
-* Randomize the climber's gender on every new game.
-* Reset the climber to the base of the ladder.
-* Reset progress to 0%.
-* Preserve the existing coordinate-question generation and scoring logic unless required to support this new interface.
-
-## 9. General Requirements
-
-* All animations should be smooth and synchronized with their corresponding sound effects.
-* Character movement should use consistent world coordinates so the climber remains aligned with the ladder throughout climbing and falling.
-* Do not modify the existing coordinate question logic except where necessary to integrate the new visual game mechanics.
-* Ensure the interface remains responsive and all animations complete cleanly before accepting the next user input.
+* Ensure there is exactly one active question at any time.
+* Prevent additional user input while answer evaluation, feedback, or animations are in progress.
+* Preserve all existing gameplay mechanics, animations, scoring, sound effects, and victory/game-over conditions. Only modify the game flow so that each question is evaluated and resolved before the next question is presented.

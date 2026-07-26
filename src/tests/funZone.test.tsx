@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import App from '../App';
 import { difficultyFromCorrect } from '../components/FunZoneMode';
@@ -45,16 +45,24 @@ describe('Fun Zone', () => {
     expect(screen.getByRole('heading', { name: 'Cannon Game' })).toBeVisible();
   });
 
-  it('provides immediate feedback and tracks a measurable score', () => {
+  it('provides immediate feedback, locks input, and advances automatically', async () => {
     openFunZone();
 
     const target = currentPlotTarget();
     submitPlot(target.x === 2 ? -2 : target.x + 1, target.y);
 
     expect(screen.getByRole('status')).toBeVisible();
-    expect(screen.getByRole('button', { name: /Next challenge/ })).toBeVisible();
+    expect(screen.getByText('Incorrect')).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Next challenge/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Plot this point' })).toBeDisabled();
     expect(screen.getByLabelText('Game score')).toHaveTextContent('0 streak');
     expect(screen.getByLabelText('0 total points from 1 attempts')).toBeInTheDocument();
+
+    await waitFor(
+      () => expect(screen.getByRole('button', { name: 'Plot this point' })).toBeEnabled(),
+      { timeout: 1600 },
+    );
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('persists score across a reload', () => {
@@ -83,9 +91,12 @@ describe('Fun Zone', () => {
     ]);
   });
 
-  it('keeps Target Plotter on a fixed negative 7 to 7 grid without difficulty levels', () => {
+  it('keeps Target Plotter on a fixed negative 7 to 7 grid without difficulty levels', async () => {
     openFunZone();
 
+    expect(screen.queryByRole('heading', { name: 'Coordinate picker' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/climber at 0% of the ladder/)).toBeVisible();
+    expect(screen.getByLabelText('Ladder progress')).toHaveValue(0);
     expect(screen.queryByLabelText(/Difficulty \d+%/)).not.toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Difficulty mode' })).not.toBeInTheDocument();
     expect(within(screen.getByRole('combobox', { name: 'x' })).getAllByRole('option')).toHaveLength(15);
@@ -96,12 +107,16 @@ describe('Fun Zone', () => {
     for (let answerIndex = 0; answerIndex < 3; answerIndex += 1) {
       const target = currentPlotTarget();
       submitPlot(target.x, target.y);
-      if (answerIndex < 2) fireEvent.click(screen.getByRole('button', { name: /Next challenge/ }));
+      expect(screen.getByText('Correct!')).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Plot this point' })).toBeDisabled();
+      await waitFor(
+        () => expect(screen.getByRole('button', { name: 'Plot this point' })).toBeEnabled(),
+        { timeout: 1400 },
+      );
     }
 
+    expect(screen.getByLabelText('Ladder progress')).toHaveValue(30);
     expect(screen.queryByText(/Difficulty increased/)).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /Next challenge/ }));
     expect(within(screen.getByRole('combobox', { name: 'x' })).getAllByRole('option')).toHaveLength(15);
   });
 });
