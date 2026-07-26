@@ -15,20 +15,33 @@ const currentPlotTarget = () => {
 };
 
 const submitPlot = (x: number, y: number) => {
-  fireEvent.change(screen.getByRole('combobox', { name: 'x' }), { target: { value: String(x) } });
-  fireEvent.change(screen.getByRole('combobox', { name: 'y' }), { target: { value: String(y) } });
-  fireEvent.click(screen.getByRole('button', { name: 'Plot this point' }));
+  const grid = screen.getByRole('img', { name: /Blank coordinate grid/ });
+  Object.defineProperty(grid, 'getBoundingClientRect', {
+    configurable: true,
+    value: () => ({
+      left: 0, top: 0, width: 360, height: 360,
+      right: 360, bottom: 360, x: 0, y: 0,
+      toJSON: () => ({}),
+    }),
+  });
+  fireEvent.click(grid, {
+    clientX: 180 + x * (150 / 7),
+    clientY: 180 - y * (150 / 7),
+  });
 };
 
 describe('Fun Zone', () => {
   beforeEach(() => window.localStorage.clear());
 
-  it('gives Coordinate Systems a five-activity arcade', () => {
+  it('shows only Target Plotter and Rotation Reactor in the Coordinate Systems arcade', () => {
     openFunZone();
 
     const selector = screen.getByRole('navigation', { name: 'Fun Zone activities' });
-    expect(within(selector).getAllByRole('button')).toHaveLength(5);
+    expect(within(selector).getAllByRole('button')).toHaveLength(2);
     expect(screen.getByRole('heading', { name: 'Target Plotter' })).toBeVisible();
+    expect(within(selector).queryByRole('button', { name: /Radar Reader/ })).not.toBeInTheDocument();
+    expect(within(selector).queryByRole('button', { name: /Translation Trek/ })).not.toBeInTheDocument();
+    expect(within(selector).queryByRole('button', { name: /Mirror Match/ })).not.toBeInTheDocument();
 
     fireEvent.click(within(selector).getByRole('button', { name: /Rotation Reactor/ }));
     expect(screen.getByRole('heading', { name: 'Rotation Reactor' })).toBeVisible();
@@ -54,12 +67,14 @@ describe('Fun Zone', () => {
     expect(screen.getByRole('status')).toBeVisible();
     expect(screen.getByText('Incorrect')).toBeVisible();
     expect(screen.queryByRole('button', { name: /Next challenge/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Plot this point' })).toBeDisabled();
+    expect(screen.getByRole('img', { name: /Blank coordinate grid/ })).not.toHaveClass('interactive');
+    expect(screen.queryByRole('button', { name: 'Plot this point' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Game score')).toHaveTextContent('0 streak');
     expect(screen.getByLabelText('0 total points from 1 attempts')).toBeInTheDocument();
 
     await waitFor(
-      () => expect(screen.getByRole('button', { name: 'Plot this point' })).toBeEnabled(),
+      () => expect(screen.getByRole('img', { name: /Blank coordinate grid/ })).toHaveClass('interactive'),
       { timeout: 1600 },
     );
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
@@ -80,7 +95,7 @@ describe('Fun Zone', () => {
     openFunZone();
 
     const selector = screen.getByRole('navigation', { name: 'Fun Zone activities' });
-    fireEvent.click(within(selector).getByRole('button', { name: /Radar Reader/ }));
+    fireEvent.click(within(selector).getByRole('button', { name: /Rotation Reactor/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Hard' }));
     expect(screen.getByLabelText('Difficulty 80%')).toBeVisible();
   });
@@ -99,24 +114,23 @@ describe('Fun Zone', () => {
     expect(screen.getByLabelText('Ladder progress')).toHaveValue(0);
     expect(screen.queryByLabelText(/Difficulty \d+%/)).not.toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Difficulty mode' })).not.toBeInTheDocument();
-    expect(within(screen.getByRole('combobox', { name: 'x' })).getAllByRole('option')).toHaveLength(15);
-    expect(within(screen.getByRole('combobox', { name: 'x' })).getByRole('option', { name: '-7' })).toBeVisible();
-    expect(within(screen.getByRole('combobox', { name: 'x' })).getByRole('option', { name: '7' })).toBeVisible();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Plot this point' })).not.toBeInTheDocument();
     expect(screen.getByTestId('plot-target')).toHaveTextContent('−7 to 7');
 
     for (let answerIndex = 0; answerIndex < 3; answerIndex += 1) {
       const target = currentPlotTarget();
       submitPlot(target.x, target.y);
       expect(screen.getByText('Correct!')).toBeVisible();
-      expect(screen.getByRole('button', { name: 'Plot this point' })).toBeDisabled();
+      expect(screen.getByRole('img', { name: /Blank coordinate grid/ })).not.toHaveClass('interactive');
       await waitFor(
-        () => expect(screen.getByRole('button', { name: 'Plot this point' })).toBeEnabled(),
+        () => expect(screen.getByRole('img', { name: /Blank coordinate grid/ })).toHaveClass('interactive'),
         { timeout: 1400 },
       );
     }
 
     expect(screen.getByLabelText('Ladder progress')).toHaveValue(30);
     expect(screen.queryByText(/Difficulty increased/)).not.toBeInTheDocument();
-    expect(within(screen.getByRole('combobox', { name: 'x' })).getAllByRole('option')).toHaveLength(15);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 });

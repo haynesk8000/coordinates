@@ -1290,11 +1290,7 @@ textarea {
 @keyframes ladder-confetti { to { transform: translateY(25px) rotate(8deg); } }
 .ladder-game-over { position: absolute; z-index: 8; inset: 0; display: grid; place-content: center; gap: .55rem; padding: 1rem; color: white; background: rgb(33 25 27 / 90%); text-align: center; }
 .ladder-game-over strong { font-size: 2rem; }
-.ladder-answer-bar { display: grid; grid-template-columns: 90px 90px minmax(150px, 1fr) auto; gap: .65rem; align-items: end; margin-top: .85rem; }
-.ladder-answer-bar label { display: grid; gap: .2rem; color: #4b5264; font-weight: 800; }
-.ladder-answer-bar select { min-height: 42px; border: 1px solid #aeb5c5; border-radius: 8px; padding-inline: .5rem; background: white; }
-.ladder-answer-bar .fun-primary-button { min-height: 42px; }
-@media (max-width: 760px) { .ladder-game-layout { grid-template-columns: 1fr; } .ladder-answer-bar { grid-template-columns: 1fr 1fr; } .ladder-answer-bar button { grid-column: 1 / -1; } }
+@media (max-width: 760px) { .ladder-game-layout { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .ladder-climber, .ladder-climber * { animation-duration: 1ms !important; animation-iteration-count: 1 !important; } }
 
 .fun-primary-button,

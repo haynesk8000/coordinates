@@ -19,16 +19,13 @@ import {
 export { difficultyFromCorrect } from './funzone/FunZoneShared';
 
 type Point = { x: number; y: number };
-type GameId = 'plot' | 'read' | 'translate' | 'rotate' | 'relate';
+type GameId = 'plot' | 'rotate';
 
-const gameIds: GameId[] = ['plot', 'read', 'translate', 'rotate', 'relate'];
+const gameIds: GameId[] = ['plot', 'rotate'];
 
 const games: Array<GameMeta<GameId>> = [
   { id: 'plot', title: 'Target Plotter', tagline: 'Hit the ordered pair', skill: 'Plotting points', icon: Crosshair, color: 'coral', showDifficulty: false },
-  { id: 'read', title: 'Radar Reader', tagline: 'Decode the signal', skill: 'Reading coordinates', icon: Radar, color: 'blue' },
-  { id: 'translate', title: 'Translation Trek', tagline: 'Move the rover', skill: 'Translation', icon: MoveRight, color: 'green' },
   { id: 'rotate', title: 'Rotation Reactor', tagline: 'Spin around the origin', skill: 'Rotation', icon: RotateCw, color: 'purple' },
-  { id: 'relate', title: 'Mirror Match', tagline: 'Spot the relationship', skill: 'Coordinate relationships', icon: Sparkles, color: 'gold' },
 ];
 
 const coordinateValuesForRange = (range: number) =>
@@ -167,10 +164,8 @@ type ClimberPhase = 'idle' | 'climbing' | 'fall-low' | 'fall-mid' | 'fall-fatal'
 
 function TargetPlotter({ stats, override, onResult }: ActivityProps) {
   const range = 7;
-  const coordinateValues = coordinateValuesForRange(range);
   const [target, setTarget] = useState(() => randomPoint(range));
   const [selected, setSelected] = useState<Point | null>(null);
-  const [keyboardPoint, setKeyboardPoint] = useState<Point>({ x: 0, y: 0 });
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [progress, setProgress] = useState(0);
   const [gender, setGender] = useState<'female' | 'male'>(() => Math.random() < 0.5 ? 'female' : 'male');
@@ -212,7 +207,6 @@ function TargetPlotter({ stats, override, onResult }: ActivityProps) {
   const presentNextQuestion = () => {
     setTarget(randomPoint(range));
     setSelected(null);
-    setKeyboardPoint({ x: 0, y: 0 });
     setFeedback(null);
     setPhase('idle');
   };
@@ -265,7 +259,6 @@ function TargetPlotter({ stats, override, onResult }: ActivityProps) {
     audioContext.current = null;
     setTarget(randomPoint(range));
     setSelected(null);
-    setKeyboardPoint({ x: 0, y: 0 });
     setFeedback(null);
     setProgress(0);
     setGender(Math.random() < 0.5 ? 'female' : 'male');
@@ -286,17 +279,16 @@ function TargetPlotter({ stats, override, onResult }: ActivityProps) {
             <span className="climber-leg left" /><span className="climber-leg right" />
           </div>
           {phase === 'victory' && <div className="ladder-confetti" aria-hidden="true">✦ 🎉 ✦</div>}
-          {phase === 'victory' && <div className="ladder-result" role="status">Platform reached! You win!</div>}
+          {phase === 'victory' && (
+            <div className="ladder-result" role="status">
+              <span>Platform reached! You win!</span>
+              <button type="button" onClick={newGame}>New game</button>
+            </div>
+          )}
           {phase === 'game-over' && <div className="ladder-game-over" role="alert"><strong>Game Over</strong><span>The climber fell from too high.</span><button type="button" onClick={newGame}>Start new game</button></div>}
           <progress max="100" value={progress} aria-label="Ladder progress" />
           <span className="ladder-progress-label">{progress}% climbed</span>
         </section>
-      </div>
-      <div className="ladder-answer-bar" aria-label="Choose coordinates">
-        <label>x<select value={keyboardPoint.x} disabled={locked} onChange={(event) => setKeyboardPoint((current) => ({ ...current, x: Number(event.target.value) }))}>{coordinateValues.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <label>y<select value={keyboardPoint.y} disabled={locked} onChange={(event) => setKeyboardPoint((current) => ({ ...current, y: Number(event.target.value) }))}>{coordinateValues.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <button type="button" className="fun-primary-button" disabled={locked} onClick={() => submit(keyboardPoint)}>Plot this point</button>
-        {(phase === 'victory' || phase === 'game-over') && <button type="button" onClick={newGame}>New game</button>}
       </div>
       {feedback && phase !== 'victory' && phase !== 'game-over' && (
         <FeedbackBanner feedback={feedback} onNext={() => {}} autoAdvance />
@@ -499,7 +491,7 @@ export function FunZoneMode() {
   return (
     <div className="fun-zone-layout">
       <FunZoneHero
-        eyebrow="Coordinate Arcade • 5 games"
+        eyebrow="Coordinate Arcade • 2 games"
         totalCorrect={totalCorrect}
         totalAttempts={totalAttempts}
         description={activeGame === 'plot'
@@ -513,10 +505,7 @@ export function FunZoneMode() {
       <GameSelectorNav games={games} activeGame={activeGame} onSelect={setActiveGame} allStats={allStats} />
 
       {activeGame === 'plot' && <TargetPlotter {...activityProps('plot')} />}
-      {activeGame === 'read' && <RadarReader {...activityProps('read')} />}
-      {activeGame === 'translate' && <TranslationTrek {...activityProps('translate')} />}
       {activeGame === 'rotate' && <RotationReactor {...activityProps('rotate')} />}
-      {activeGame === 'relate' && <MirrorMatch {...activityProps('relate')} />}
     </div>
   );
 }

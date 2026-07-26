@@ -262,12 +262,12 @@ test('dragging either axis rotates with the same snapped units as the slider', a
   await expect(slider).toHaveValue('-6');
 });
 
-test('Fun Zone switches among five games and gives immediate scored feedback', async ({ page }) => {
+test('Coordinate Fun Zone exposes two games and gives immediate scored feedback', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('tablist', { name: 'Learning mode' }).getByRole('tab', { name: 'Fun Zone' }).click();
 
   const activities = page.getByRole('navigation', { name: 'Fun Zone activities' });
-  await expect(activities.getByRole('button')).toHaveCount(5);
+  await expect(activities.getByRole('button')).toHaveCount(2);
   await expect(page.getByRole('heading', { name: 'Target Plotter' })).toBeVisible();
   await expect(page.getByLabel('Difficulty 0%')).toBeVisible();
 
@@ -279,9 +279,17 @@ test('Fun Zone switches among five games and gives immediate scored feedback', a
   expect(targetMatch).not.toBeNull();
   const targetX = Number(targetMatch?.[1]);
   const targetY = Number(targetMatch?.[2]);
-  await page.getByRole('combobox', { name: 'x', exact: true }).selectOption(String(targetX === 2 ? -2 : targetX + 1));
-  await page.getByRole('combobox', { name: 'y', exact: true }).selectOption(String(targetY));
-  await page.getByRole('button', { name: 'Plot this point' }).click();
+  const wrongX = targetX === 2 ? -2 : targetX + 1;
+  const grid = page.getByRole('img', { name: /Blank coordinate grid/ });
+  const gridBounds = await grid.boundingBox();
+  expect(gridBounds).not.toBeNull();
+  const scale = Math.min(gridBounds!.width / 360, gridBounds!.height / 360);
+  await grid.click({
+    position: {
+      x: (gridBounds!.width - 360 * scale) / 2 + (180 + wrongX * (150 / 7)) * scale,
+      y: (gridBounds!.height - 360 * scale) / 2 + (180 - targetY * (150 / 7)) * scale,
+    },
+  });
 
   await expect(page.getByRole('status')).toContainText('The target was');
   await expect(page.getByLabel('Game score')).toContainText('0% accuracy');
