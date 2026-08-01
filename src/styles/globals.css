@@ -1185,17 +1185,52 @@ textarea {
 .fun-second-vector { stroke: #d94f45; stroke-width: 3; }
 .fun-orbit-ring { fill: none; stroke: #9aa4c0; stroke-width: 2; stroke-dasharray: 4 4; }
 
+.cannon-phase-badge { display: inline-block; margin-right: 0.4rem; padding: 0.15rem 0.55rem; border-radius: 999px; background: #a9312b; color: #fff; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.02em; vertical-align: middle; }
 .cannon-scene-figure { margin: 0.85rem 0; }
 .cannon-scene { width: 100%; max-height: 340px; }
 .cannon-tick { stroke: #9aa4c0; stroke-width: 2; }
 .cannon-target line { stroke: #742b25; stroke-width: 3; }
 .cannon-target path { fill: #d94f45; stroke: #742b25; stroke-width: 1; }
+.cannon-target.destroyed line { stroke: #5b5750; }
+.cannon-target.destroyed path { fill: #7a2f26; stroke: #3f1712; }
 .cannon-body rect { fill: #374151; stroke: #1f2733; stroke-width: 1; }
 .cannon-base { fill: #4b5563; stroke: #1f2733; stroke-width: 1.5; }
 .cannon-ball { fill: #1f2733; stroke: #ffffff; stroke-width: 2; }
 .cannon-shot-marker { fill: #b8bfd1; stroke: #6b7490; stroke-width: 1.5; }
 .cannon-shot-marker.hit { fill: #3fae6a; stroke: #1e6b3d; }
 .cannon-scene-figure figcaption { margin-top: 0.5rem; font-size: 0.85rem; color: var(--muted); }
+
+.cannon-crater ellipse { fill: #4a3527; stroke: #2c1e15; stroke-width: 1.5; opacity: 0.92; }
+.cannon-crater.large ellipse { fill: #3a2a1e; stroke-width: 2; }
+
+.cannon-explosion { pointer-events: none; }
+.cannon-explosion.miss .blast-core { fill: #ffb347; animation: cannon-blast-core 0.5s ease-out forwards; }
+.cannon-explosion.miss .blast-ring { fill: none; stroke: #ff7a45; stroke-width: 3; animation: cannon-blast-ring 0.5s ease-out forwards; }
+.cannon-explosion.hit .mushroom-stem { fill: #8a8578; transform-box: fill-box; transform-origin: 50% 100%; animation: cannon-mushroom-stem 0.95s ease-out forwards; }
+.cannon-explosion.hit .mushroom-cap { fill: #d9502f; transform-box: fill-box; transform-origin: 50% 100%; animation: cannon-mushroom-cap 0.95s ease-out forwards; }
+.cannon-explosion.hit .blast-ring { fill: none; stroke: #ffb347; stroke-width: 4; animation: cannon-hit-ring 0.95s ease-out forwards; }
+
+@keyframes cannon-blast-core {
+  0% { r: 2; opacity: 0.95; }
+  100% { r: 16; opacity: 0; }
+}
+@keyframes cannon-blast-ring {
+  0% { r: 4; opacity: 0.55; }
+  100% { r: 34; opacity: 0; }
+}
+@keyframes cannon-mushroom-stem {
+  0% { r: 6; opacity: 0.9; transform: translateY(0) scaleY(0.2); }
+  100% { r: 9; opacity: 0; transform: translateY(-34px) scaleY(1); }
+}
+@keyframes cannon-mushroom-cap {
+  0% { r: 3; opacity: 0; transform: translateY(0); }
+  35% { opacity: 1; }
+  100% { r: 30; opacity: 0; transform: translateY(-58px); }
+}
+@keyframes cannon-hit-ring {
+  0% { r: 6; opacity: 0.6; }
+  100% { r: 48; opacity: 0; }
+}
 
 .cannon-controls { margin-top: 0.85rem; }
 .cannon-controls h3 { margin: 0 0 0.6rem; font-size: 1rem; }
