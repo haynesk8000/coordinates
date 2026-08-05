@@ -50,6 +50,8 @@ describe('Fun Zone', () => {
     expect(screen.getByTestId('rotation-prompt')).toHaveTextContent(/π\/2|π|3π\/2|2π/);
     expect(screen.getByRole('img', { name: /Vector from the origin/ })).toHaveClass('interactive');
     expect(screen.getByLabelText('Game score')).toHaveTextContent('0 score');
+    expect(screen.getByRole('region', { name: 'Rotation instructions' })).toBeVisible();
+    expect(screen.getByLabelText(/Tightrope player standing, 0 of 5 rope segments completed/)).toBeVisible();
   });
 
   it('also gives the other physics topics their own Fun Zone', () => {

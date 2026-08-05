@@ -442,7 +442,7 @@ function RotationReactorLegacy({ stats, override, onResult }: ActivityProps) {
 
 */
 
-function RotationReactor({ stats, override, onResult }: ActivityProps) {
+function RotationReactorWithoutTightrope({ stats, override, onResult }: ActivityProps) {
   const [challenge, setChallenge] = useState(makeRotation);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [selected, setSelected] = useState<Point | null>(null);
@@ -496,6 +496,143 @@ function RotationReactor({ stats, override, onResult }: ActivityProps) {
       {feedback && status === 'playing' && <FeedbackBanner feedback={feedback} onNext={next} />}
       {status === 'won' && <div className="rotation-game-result victory fun-celebrate" role="status"><Sparkles aria-hidden="true" /><strong>Reactor stabilized! You win!</strong><span>You reached 5 points.</span><button type="button" onClick={restart}>Play again</button></div>}
       {status === 'lost' && <div className="rotation-game-result game-over" role="alert"><strong>Game Over</strong><span>Two consecutive incorrect answers ended the run.</span><button type="button" onClick={restart}>Restart activity</button></div>}
+    </GameShell>
+  );
+}
+
+type TightropePhase = 'standing' | 'slipping' | 'hanging' | 'climbing' | 'walking' | 'falling' | 'dancing';
+
+function RotationReactor({ stats, override, onResult }: ActivityProps) {
+  const [challenge, setChallenge] = useState(makeRotation);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [selected, setSelected] = useState<Point | null>(null);
+  const [score, setScore] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [consecutiveIncorrect, setConsecutiveIncorrect] = useState(0);
+  const [status, setStatus] = useState<'playing' | 'won' | 'lost'>('playing');
+  const [phase, setPhase] = useState<TightropePhase>('standing');
+  const timers = useRef<number[]>([]);
+  const audioContext = useRef<AudioContext | null>(null);
+  const radians = ({ 90: 'π/2', 180: 'π', 270: '3π/2', 360: '2π' } as const)[challenge.angle];
+  const animating = ['slipping', 'climbing', 'walking', 'falling'].includes(phase);
+
+  const clearTimers = () => {
+    timers.current.forEach((timer) => window.clearTimeout(timer));
+    timers.current = [];
+  };
+  const after = (delay: number, callback: () => void) => timers.current.push(window.setTimeout(callback, delay));
+  useEffect(() => () => {
+    clearTimers();
+    void audioContext.current?.close();
+  }, []);
+  const playSound = (kind: 'scream' | 'victory') => {
+    if (typeof AudioContext === 'undefined') return;
+    const context = audioContext.current ?? new AudioContext();
+    audioContext.current = context;
+    void context.resume();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = kind === 'scream' ? 'sawtooth' : 'triangle';
+    const startFrequency = kind === 'scream' ? 700 : 440;
+    oscillator.frequency.setValueAtTime(startFrequency, context.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(kind === 'scream' ? 90 : 880, context.currentTime + .9);
+    gain.gain.setValueAtTime(kind === 'scream' ? .08 : .1, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.001, context.currentTime + .9);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + .9);
+  };
+
+  const answer = (choice: Point) => {
+    if (feedback || status !== 'playing' || animating) return;
+    setSelected(choice);
+    const correct = samePoint(choice, challenge.answer);
+    onResult(correct);
+    const nextScore = score + (correct ? 1 : -1);
+    const nextMisses = correct ? 0 : consecutiveIncorrect + 1;
+    setScore(nextScore);
+    setConsecutiveIncorrect(nextMisses);
+    setFeedback({
+      correct,
+      message: correct
+        ? `Correct. The resulting endpoint is ${pointLabel(challenge.answer)}.`
+        : `The correct endpoint is ${pointLabel(challenge.answer)}. ${challenge.type === 'coordinates' ? 'Coordinates turn opposite to the rotating axes.' : 'The vector turns in the stated direction.'}`,
+    });
+
+    if (correct) {
+      const walk = () => {
+        setPhase('walking');
+        setProgress((current) => Math.min(5, current + 1));
+        after(1050, () => {
+          if (nextScore >= 5) {
+            setStatus('won');
+            setPhase('dancing');
+            playSound('victory');
+          } else setPhase('standing');
+        });
+      };
+      if (phase === 'hanging') {
+        setPhase('climbing');
+        after(850, walk);
+      } else walk();
+    } else if (nextMisses >= 2) {
+      setPhase('falling');
+      after(180, () => playSound('scream'));
+      after(1700, () => setStatus('lost'));
+    } else {
+      setPhase('slipping');
+      after(900, () => setPhase('hanging'));
+    }
+  };
+
+  const next = () => {
+    if (animating) return;
+    setChallenge(makeRotation());
+    setSelected(null);
+    setFeedback(null);
+  };
+  const restart = () => {
+    clearTimers();
+    void audioContext.current?.close();
+    audioContext.current = null;
+    setChallenge(makeRotation());
+    setSelected(null);
+    setFeedback(null);
+    setScore(0);
+    setProgress(0);
+    setConsecutiveIncorrect(0);
+    setStatus('playing');
+    setPhase('standing');
+  };
+
+  return (
+    <GameShell icon={RotateCw} color="purple" skill="Rotation" title="Rotation Reactor" headingId="rotate-game-heading" instructions="Plot the new endpoint after the stated vector or coordinate-system rotation." stats={stats} difficulty={0} override={override} showDifficulty={false} scoreOverride={<><span><strong>{score}</strong> score</span><span><strong>{consecutiveIncorrect}</strong>/2 consecutive misses</span><span>Win at <strong>5</strong></span></>}>
+      <section className="fun-rotation-help rotation-instructions" aria-label="Rotation instructions">
+        <strong>{challenge.type === 'vector' ? 'Vector rotation' : 'Coordinate-system rotation'}</strong>
+        <p>{challenge.type === 'vector' ? 'The axes stay fixed while the vector turns.' : 'The vector stays fixed in space while the axes turn; its coordinate values transform oppositely.'} Select the resulting endpoint directly on the grid.</p>
+      </section>
+      <div className="fun-prompt" data-testid="rotation-prompt">
+        Rotate the <strong>{challenge.type === 'vector' ? 'vector' : 'coordinate system'}</strong> <strong>{radians} radians {challenge.clockwise ? 'clockwise' : 'counterclockwise'}</strong>.
+        <small>Original vector endpoint: {pointLabel(challenge.point)} • fixed range −6 to 6</small>
+      </div>
+      <div className="rotation-reactor-layout">
+        <CoordinateGrid range={6} vectors={[{ endpoint: challenge.point, label: `v = ${pointLabel(challenge.point)}` }]} interactive={!feedback && status === 'playing' && !animating} selected={selected} onSelect={answer} ariaLabel={`Vector from the origin to ${pointLabel(challenge.point)}. Select the resulting endpoint on a grid from negative 6 to 6.`} />
+        <section className={`tightrope-scene phase-${phase}`} aria-label={`Tightrope player ${phase}, ${progress} of 5 rope segments completed`}>
+          <div className="tightrope-sky" aria-hidden="true" />
+          <div className="tightrope-ground left" aria-hidden="true" />
+          <div className="tightrope-ground right" aria-hidden="true" />
+          <div className="tightrope-chasm" aria-hidden="true" />
+          <div className="tightrope-line" aria-hidden="true" />
+          <div className="tightrope-person" style={{ '--rope-position': `${16 + progress * 13.8}%` } as CSSProperties} aria-hidden="true">
+            <span className="rope-head" /><span className="rope-body" /><span className="rope-arm left" /><span className="rope-arm right" /><span className="rope-leg left" /><span className="rope-leg right" />
+          </div>
+          <div className="tightrope-segments" aria-hidden="true">{Array.from({ length: 5 }, (_, index) => <span key={index} className={index < progress ? 'complete' : ''} />)}</div>
+          <span className="tightrope-progress-label">{progress}/5 rope segments</span>
+        </section>
+      </div>
+      {feedback && status === 'playing' && <FeedbackBanner feedback={feedback} onNext={next} disabled={animating} />}
+      {status === 'won' && <div className="rotation-game-result victory fun-celebrate" role="status"><Sparkles aria-hidden="true" /><strong>Reactor stabilized! You win!</strong><span>The tightrope walker reached solid ground.</span><button type="button" onClick={restart}>Play again</button></div>}
+      {status === 'lost' && <div className="rotation-game-result game-over" role="alert"><strong>Game Over</strong><span>The tightrope walker fell after two consecutive misses.</span><button type="button" onClick={restart}>Restart activity</button></div>}
     </GameShell>
   );
 }

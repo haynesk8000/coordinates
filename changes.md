@@ -1,128 +1,113 @@
 **AI Agent Task: Update the Rotation Reactor (Fun Zone → Coordinate Systems Tab)**
 
-Redesign the **Rotation Reactor** activity to focus on vector rotations and coordinate system rotations. Replace the current gameplay with the specifications below while preserving the overall look and feel of the Fun Zone.
+Redesign the Rotation Reactor interface and integrate an animated tightrope scene that visually represents the player's progress and game state.
 
-## 1. Replace the Point with a Vector
+## 1. Relocate the Instruction Text
 
-* Remove the single point currently displayed on the coordinate grid.
-* Replace it with a **vector** originating at the origin `(0, 0)` and terminating at the specified coordinate.
-* Display the vector with a clearly visible arrowhead.
-* The vector should remain fixed until the user submits an answer.
+Modify the layout of the activity as follows:
 
-## 2. Question Types
+* Remove the **Help/Instruction** panel currently displayed to the right of the coordinate grid.
+* Move the instructional text into a panel positioned **directly above the coordinate grid**.
+* Preserve the existing instructional content, updating it only if necessary to reflect the current game rules.
+* Ensure the instruction panel spans the width of the coordinate grid and remains readable without reducing the usable grid area.
 
-Support two distinct question types:
+## 2. Add a Tightrope Animation Scene
 
-### Type A: Vector Rotation
+To the **right of the coordinate grid**, add a persistent animated scene consisting of:
 
-* Display a vector on the grid.
-* Ask the user to determine the vector's new endpoint after rotating the **vector** about the origin.
+* A deep chasm.
+* A taut tightrope spanning the chasm.
+* Stable ground on both sides of the chasm.
+* A human character standing on the rope.
+* The character begins **one step from the left edge** of the rope.
 
-### Type B: Coordinate System Rotation
+The rope should require **five total progress segments** to reach the opposite side.
 
-* Display the same vector.
-* Ask the user to determine the coordinates of the vector when the **coordinate system** (axes) is rotated while the vector remains fixed in space.
-* Use the mathematically correct transformation for rotating the coordinate system.
+## 3. Correct Answer Behavior
 
-### Question Selection
+When the user answers a question correctly:
 
-* Randomly choose between **Vector Rotation** and **Coordinate System Rotation** for each new question.
-* Both question types should occur with approximately equal probability.
+1. If the character is hanging below the rope from a previous incorrect answer:
 
-## 3. Fixed Coordinate Grid
+   * Animate the character climbing back onto the rope at the exact position where they fell.
+   * After climbing back onto the rope, continue with the normal movement.
 
-Remove the adaptive difficulty system.
+2. Animate the character taking **two realistic walking steps** toward the far side.
 
-Use a fixed coordinate grid for the entire activity.
+3. Those two animated steps should advance the character **exactly one-fifth (1/5)** of the total rope length.
 
-Requirements:
+4. Synchronize the movement animation with natural walking motion.
 
-* X-axis ranges from **-6 to +6**.
-* Y-axis ranges from **-6 to +6**.
-* The origin remains centered.
-* Grid spacing is uniform.
-* All generated vectors must terminate within the valid grid boundaries.
+## 4. Incorrect Answer Behavior
 
-## 4. Rotation Parameters
+When the user answers a question incorrectly:
 
-For every question, randomly determine:
+### First Consecutive Incorrect Answer
 
-### Rotation Direction
+* Animate the character slipping from the rope.
+* The character falls only a short distance below the rope.
+* The character catches the rope and remains hanging beneath it.
+* Do **not** change the player's progress along the rope.
+* The hanging position should remain until the next question is answered.
 
-* Clockwise
-* Counterclockwise
+### Correct Answer After Hanging
 
-### Rotation Angle
+If the next answer is correct:
 
-Randomly select one of the following angles (in radians):
+* Animate the character climbing back onto the rope.
+* Restore the character to the exact horizontal position occupied before the fall.
+* After climbing back onto the rope, animate the normal forward movement described above.
 
-* π/2
-* π
-* 3π/2
-* 2π
+### Second Consecutive Incorrect Answer
 
-Each angle should have an equal probability of being selected.
+If the user answers two questions in a row incorrectly:
 
-## 5. User Interaction
-
-* Display the original vector.
-* Clearly state:
-
-  * Whether the **vector** or the **coordinate system** is being rotated.
-  * The rotation direction.
-  * The rotation angle (in radians).
-* The user answers by selecting or plotting the resulting endpoint on the coordinate grid.
-* After submission, immediately evaluate the answer and provide clear Correct/Incorrect feedback before presenting the next question.
-
-## 6. Scoring
-
-Maintain a running score.
-
-### Correct Answer
-
-* Award **+1 point**.
-
-### Incorrect Answer
-
-* Deduct **1 point**.
-
-Display the current score throughout the activity.
-
-## 7. Winning Condition
-
-The activity is successfully completed when the user's cumulative score reaches **5 points**.
-
-Upon completion:
-
-* Display a clear success message.
-* Play the existing victory animation and sound effects (or equivalent celebration).
-* Prevent additional questions until the activity is restarted.
-
-## 8. Failure Condition
-
-Track consecutive incorrect answers.
-
-If the user answers **two consecutive questions incorrectly**:
-
+* Animate the character losing their grip.
+* The character falls into the chasm.
+* Use a longer, more dramatic falling animation.
+* Play a realistic scream synchronized with the fall.
 * End the activity immediately.
-* Display a **Game Over** message.
-* Prevent additional input until the activity is restarted.
+* Display a clear **Game Over** message.
+* Disable further gameplay until the activity is restarted.
 
-A correct answer resets the consecutive incorrect answer counter to zero.
+## 5. Victory Sequence
 
-## 9. Activity Reset
+When the player's score reaches **5 points**:
 
-When the activity is restarted:
+1. Animate the character taking the final steps onto solid ground on the far side of the chasm.
+2. Play the existing victory sound (or another celebratory sound if appropriate).
+3. Animate the character performing a celebratory dance.
+4. Display a clear success message.
+5. End the activity and prevent additional questions until the game is restarted.
+
+## 6. State Management
+
+Maintain the following gameplay state throughout the activity:
+
+* Current score.
+* Character progress across the rope.
+* Whether the character is:
+
+  * Standing on the rope.
+  * Hanging below the rope.
+  * Has fallen into the chasm (game over).
+  * Has reached the far side (victory).
+* Consecutive incorrect answer count.
+
+## 7. Activity Reset
+
+When the user starts a new game:
 
 * Reset the score to **0**.
 * Reset the consecutive incorrect answer count to **0**.
-* Generate a new random vector.
-* Continue using the fixed **-6 to +6** coordinate grid.
-* Resume random selection of question type, rotation direction, and rotation angle.
+* Position the character one step from the left side of the rope.
+* Restore the character to a standing position.
+* Clear all game-over and victory states.
+* Generate a new sequence of rotation questions.
 
-## 10. General Requirements
+## 8. General Requirements
 
-* Remove all adaptive or changing difficulty logic from the activity.
-* Ensure all vector rotations and coordinate system rotations use mathematically correct transformations.
-* Keep rendering, coordinate generation, and answer validation synchronized so the displayed vector and expected answer are always consistent.
-* Preserve existing UI conventions, accessibility features, and overall visual style unless explicitly modified by this specification.
+* Synchronize all animations, sound effects, and gameplay events.
+* Prevent user input while animations are in progress.
+* Ensure transitions between hanging, climbing, walking, falling, victory, and game-over states are smooth and visually consistent.
+* Preserve all existing rotation logic, scoring rules, coordinate validation, and question generation. Only modify the interface and progression animations as specified above.
