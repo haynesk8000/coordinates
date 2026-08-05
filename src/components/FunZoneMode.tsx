@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { Crosshair, MoveRight, Radar, RotateCw, Sparkles } from 'lucide-react';
+import fallingSoundUrl from '../../falling.mp3?url';
+import nonFatalMissSoundUrl from '../../ohoh.mp3?url';
 import {
   difficultyForStats,
   feedbackWithProgress,
@@ -513,6 +515,8 @@ function RotationReactor({ stats, override, onResult }: ActivityProps) {
   const [phase, setPhase] = useState<TightropePhase>('standing');
   const timers = useRef<number[]>([]);
   const audioContext = useRef<AudioContext | null>(null);
+  const fallingAudio = useRef<HTMLAudioElement | null>(null);
+  const nonFatalMissAudio = useRef<HTMLAudioElement | null>(null);
   const radians = ({ 90: 'π/2', 180: 'π', 270: '3π/2', 360: '2π' } as const)[challenge.angle];
   const animating = ['slipping', 'climbing', 'walking', 'falling'].includes(phase);
 
@@ -524,23 +528,49 @@ function RotationReactor({ stats, override, onResult }: ActivityProps) {
   useEffect(() => () => {
     clearTimers();
     void audioContext.current?.close();
+    fallingAudio.current?.pause();
+    nonFatalMissAudio.current?.pause();
   }, []);
+  const playFallingSound = () => {
+    const audio = fallingAudio.current ?? new Audio(fallingSoundUrl);
+    fallingAudio.current = audio;
+    audio.pause();
+    audio.currentTime = 0;
+    void audio.play().catch(() => undefined);
+  };
+  const playNonFatalMissSound = () => {
+    const audio = nonFatalMissAudio.current ?? new Audio(nonFatalMissSoundUrl);
+    nonFatalMissAudio.current = audio;
+    audio.pause();
+    audio.currentTime = 0;
+    void audio.play().catch(() => undefined);
+  };
   const playSound = (kind: 'scream' | 'victory') => {
     if (typeof AudioContext === 'undefined') return;
     const context = audioContext.current ?? new AudioContext();
     audioContext.current = context;
     void context.resume();
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = kind === 'scream' ? 'sawtooth' : 'triangle';
-    const startFrequency = kind === 'scream' ? 700 : 440;
-    oscillator.frequency.setValueAtTime(startFrequency, context.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(kind === 'scream' ? 90 : 880, context.currentTime + .9);
-    gain.gain.setValueAtTime(kind === 'scream' ? .08 : .1, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(.001, context.currentTime + .9);
-    oscillator.connect(gain).connect(context.destination);
-    oscillator.start();
-    oscillator.stop(context.currentTime + .9);
+    const notes = kind === 'victory' ? [440, 554, 659, 880, 659, 880] : [700];
+    notes.forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      const start = context.currentTime + index * .16;
+      const duration = kind === 'victory' ? .24 : .9;
+      oscillator.type = kind === 'scream' ? 'sawtooth' : 'triangle';
+      oscillator.frequency.setValueAtTime(frequency, start);
+      if (kind === 'scream') oscillator.frequency.exponentialRampToValueAtTime(90, start + duration);
+      gain.gain.setValueAtTime(kind === 'scream' ? .08 : .07, start);
+      gain.gain.exponentialRampToValueAtTime(.001, start + duration);
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start(start);
+      oscillator.stop(start + duration);
+    });
+  };
+
+  const presentNextChallenge = () => {
+    setChallenge(makeRotation());
+    setSelected(null);
+    setFeedback(null);
   };
 
   const answer = (choice: Point) => {
@@ -568,7 +598,10 @@ function RotationReactor({ stats, override, onResult }: ActivityProps) {
             setStatus('won');
             setPhase('dancing');
             playSound('victory');
-          } else setPhase('standing');
+          } else {
+            setPhase('standing');
+            after(450, presentNextChallenge);
+          }
         });
       };
       if (phase === 'hanging') {
@@ -577,24 +610,25 @@ function RotationReactor({ stats, override, onResult }: ActivityProps) {
       } else walk();
     } else if (nextMisses >= 2) {
       setPhase('falling');
-      after(180, () => playSound('scream'));
+      playFallingSound();
       after(1700, () => setStatus('lost'));
     } else {
       setPhase('slipping');
-      after(900, () => setPhase('hanging'));
+      playNonFatalMissSound();
+      after(900, () => {
+        setPhase('hanging');
+        after(450, presentNextChallenge);
+      });
     }
-  };
-
-  const next = () => {
-    if (animating) return;
-    setChallenge(makeRotation());
-    setSelected(null);
-    setFeedback(null);
   };
   const restart = () => {
     clearTimers();
     void audioContext.current?.close();
     audioContext.current = null;
+    fallingAudio.current?.pause();
+    fallingAudio.current = null;
+    nonFatalMissAudio.current?.pause();
+    nonFatalMissAudio.current = null;
     setChallenge(makeRotation());
     setSelected(null);
     setFeedback(null);
@@ -630,7 +664,7 @@ function RotationReactor({ stats, override, onResult }: ActivityProps) {
           <span className="tightrope-progress-label">{progress}/5 rope segments</span>
         </section>
       </div>
-      {feedback && status === 'playing' && <FeedbackBanner feedback={feedback} onNext={next} disabled={animating} />}
+      {feedback && status === 'playing' && <FeedbackBanner feedback={feedback} autoAdvance />}
       {status === 'won' && <div className="rotation-game-result victory fun-celebrate" role="status"><Sparkles aria-hidden="true" /><strong>Reactor stabilized! You win!</strong><span>The tightrope walker reached solid ground.</span><button type="button" onClick={restart}>Play again</button></div>}
       {status === 'lost' && <div className="rotation-game-result game-over" role="alert"><strong>Game Over</strong><span>The tightrope walker fell after two consecutive misses.</span><button type="button" onClick={restart}>Restart activity</button></div>}
     </GameShell>

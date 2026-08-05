@@ -1181,12 +1181,12 @@ textarea {
 .rotation-instructions { width: min(100%, 720px); margin-bottom: .75rem; }
 .rotation-instructions p { margin: .35rem 0 0; }
 .rotation-reactor-layout { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(300px, .9fr); gap: 1rem; align-items: stretch; }
-.tightrope-scene { position: relative; min-height: 360px; overflow: hidden; border-radius: 18px; background: linear-gradient(#bce7ff 0 47%, #8a684e 47% 54%, #251b31 54% 100%); border: 1px solid #c9b7dc; }
+.tightrope-scene { position: relative; min-height: 360px; overflow: hidden; border-radius: 18px; background: linear-gradient(#bce7ff 0 47%, #8a684e 47% 100%); border: 1px solid #c9b7dc; }
 .tightrope-sky { position: absolute; inset: 0 0 46%; background: radial-gradient(circle at 25% 22%, #fff 0 6%, transparent 7%), linear-gradient(#91d7fa, #dff5ff); }
 .tightrope-ground { position: absolute; top: 45%; bottom: 0; width: 17%; z-index: 2; background: linear-gradient(#5f9c42 0 8%, #76523c 9% 100%); }
 .tightrope-ground.left { left: 0; clip-path: polygon(0 0, 100% 0, 78% 100%, 0 100%); }
 .tightrope-ground.right { right: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 22% 100%); }
-.tightrope-chasm { position: absolute; left: 14%; right: 14%; top: 53%; bottom: 0; background: linear-gradient(#352341, #08060c); }
+.tightrope-chasm { position: absolute; left: 14%; right: 14%; top: 53%; bottom: 0; background: linear-gradient(to bottom, #86d4f6 0 50%, #000 50% 100%); }
 .tightrope-line { position: absolute; z-index: 4; left: 14%; right: 14%; top: 48%; height: 4px; background: #5b3725; box-shadow: 0 2px 2px #130c08; }
 .tightrope-person { --rope-position: 16%; position: absolute; z-index: 5; left: var(--rope-position); top: calc(48% - 48px); width: 26px; height: 52px; transition: left 1s ease-in-out, top .75s ease-in, transform .75s ease-in, opacity .4s; transform-origin: 50% 100%; }
 .tightrope-person span { position: absolute; display: block; background: #27365e; border-radius: 10px; }
@@ -1206,7 +1206,7 @@ textarea {
 .tightrope-scene.phase-hanging .tightrope-person { top: 49%; transform: rotate(5deg); }
 .tightrope-scene.phase-hanging .rope-arm.left, .tightrope-scene.phase-hanging .rope-arm.right { top: -8px; }
 .tightrope-scene.phase-climbing .tightrope-person { animation: rope-climb .85s ease-out; }
-.tightrope-scene.phase-falling .tightrope-person { top: 105%; transform: rotate(55deg); opacity: .15; transition-duration: 1.65s; }
+.tightrope-scene.phase-falling .tightrope-person { top: 78%; transform: rotate(55deg) scale(.45); opacity: .08; transition-duration: 1.65s; }
 .tightrope-scene.phase-dancing .tightrope-person { animation: rope-dance .5s ease-in-out infinite alternate; }
 .tightrope-segments { position: absolute; z-index: 6; left: 18%; right: 18%; bottom: 24px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
 .tightrope-segments span { height: 7px; border-radius: 5px; background: #fff5; border: 1px solid #fff8; }

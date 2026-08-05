@@ -134,7 +134,7 @@ export function FeedbackBanner({
   autoAdvance = false,
 }: {
   feedback: Feedback;
-  onNext: () => void;
+  onNext?: () => void;
   disabled?: boolean;
   autoAdvance?: boolean;
 }) {
@@ -153,7 +153,7 @@ export function FeedbackBanner({
       {autoAdvance
         ? <span aria-label="Next question will appear automatically">Next question loading…</span>
         : (
-          <button type="button" onClick={onNext} disabled={disabled}>
+          <button type="button" onClick={() => onNext?.()} disabled={disabled}>
             <RefreshCw aria-hidden="true" size={17} /> Next challenge
           </button>
         )}
