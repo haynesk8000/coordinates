@@ -25,7 +25,7 @@ const gameIds: GameId[] = ['plot', 'rotate'];
 
 const games: Array<GameMeta<GameId>> = [
   { id: 'plot', title: 'Target Plotter', tagline: 'Hit the ordered pair', skill: 'Plotting points', icon: Crosshair, color: 'coral', showDifficulty: false },
-  { id: 'rotate', title: 'Rotation Reactor', tagline: 'Spin around the origin', skill: 'Rotation', icon: RotateCw, color: 'purple' },
+  { id: 'rotate', title: 'Rotation Reactor', tagline: 'Rotate vectors and frames', skill: 'Rotation', icon: RotateCw, color: 'purple', showDifficulty: false },
 ];
 
 const coordinateValuesForRange = (range: number) =>
@@ -83,6 +83,7 @@ function makePointChoices(answer: Point, range: number, count: number): Point[] 
 
 function CoordinateGrid({
   points = [],
+  vectors = [],
   selected,
   interactive = false,
   onSelect,
@@ -90,6 +91,7 @@ function CoordinateGrid({
   range = 5,
 }: {
   points?: Array<{ point: Point; label: string; tone?: string }>;
+  vectors?: Array<{ endpoint: Point; label: string; tone?: string }>;
   selected?: Point | null;
   interactive?: boolean;
   onSelect?: (point: Point) => void;
@@ -123,6 +125,9 @@ function CoordinateGrid({
         <marker id="fun-axis-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
           <path d="M 0 0 L 10 5 L 0 10 z" />
         </marker>
+        <marker id="fun-vector-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth={7 / 3} markerHeight={7 / 3} orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" />
+        </marker>
       </defs>
       <rect width="360" height="360" rx="18" className="fun-grid-bg" />
       {coordinateValues.map((value) => (
@@ -141,6 +146,15 @@ function CoordinateGrid({
       <line x1={origin} y1="338" x2={origin} y2="22" className="fun-grid-axis" markerEnd="url(#fun-axis-arrow)" />
       <text x="338" y={origin - 10} className="fun-grid-axis-label">x</text>
       <text x={origin + 10} y="25" className="fun-grid-axis-label">y</text>
+      {vectors.map(({ endpoint, label, tone = 'primary' }) => {
+        const screen = toScreen(endpoint);
+        return (
+          <g key={`${label}-${endpoint.x}-${endpoint.y}`} className={`fun-vector ${tone}`}>
+            <line x1={origin} y1={origin} x2={screen.x} y2={screen.y} markerEnd="url(#fun-vector-arrow)" />
+            <text x={screen.x + 11} y={screen.y - 10} className="fun-point-label">{label}</text>
+          </g>
+        );
+      })}
       {points.map(({ point, label, tone = 'primary' }) => {
         const screen = toScreen(point);
         return (
@@ -376,27 +390,29 @@ function TranslationTrek({ stats, override, onResult }: ActivityProps) {
   );
 }
 
-type RotationChallenge = { point: Point; clockwise: boolean; angle: 90 | 180 | 270; translation?: Point; answer: Point; range: number };
-const rotatePoint = (point: Point, angle: 90 | 180 | 270, clockwise: boolean): Point => {
+type RotationAngle = 90 | 180 | 270 | 360;
+export type RotationQuestionType = 'vector' | 'coordinates';
+export type RotationChallenge = { point: Point; clockwise: boolean; angle: RotationAngle; type: RotationQuestionType; answer: Point; range: 6 };
+export const rotatePoint = (point: Point, angle: RotationAngle, clockwise: boolean): Point => {
   let rotated = { ...point };
   for (let turn = 0; turn < angle / 90; turn += 1) {
     rotated = clockwise ? { x: rotated.y, y: -rotated.x } : { x: -rotated.y, y: rotated.x };
   }
   return rotated;
 };
-const makeRotation = (level: number): RotationChallenge => {
-  const range = 2 + level;
-  const angles: Array<90 | 180 | 270> = level < 2 ? [90] : level < 3 ? [90, 180] : [90, 180, 270];
+export const makeRotation = (): RotationChallenge => {
+  const range = 6 as const;
+  const angles: RotationAngle[] = [90, 180, 270, 360];
   const angle = angles[randomInt(0, angles.length - 1)];
-  const clockwise = level === 0 ? true : Math.random() > 0.5;
-  const point = randomPoint(Math.max(1, range - (level >= 4 ? 2 : 0)), false);
-  const rotated = rotatePoint(point, angle, clockwise);
-  const translation = level >= 4 ? randomPoint(level === 4 ? 1 : 2, false) : undefined;
-  const answer = translation ? { x: rotated.x + translation.x, y: rotated.y + translation.y } : rotated;
-  return { point, clockwise, angle, translation, answer, range };
+  const clockwise = Math.random() < 0.5;
+  const type: RotationQuestionType = Math.random() < 0.5 ? 'vector' : 'coordinates';
+  const point = randomPoint(range, false);
+  const answer = rotatePoint(point, angle, type === 'vector' ? clockwise : !clockwise);
+  return { point, clockwise, angle, type, answer, range };
 };
 
-function RotationReactor({ stats, override, onResult }: ActivityProps) {
+/* Retired adaptive Rotation Reactor retained temporarily for history.
+function RotationReactorLegacy({ stats, override, onResult }: ActivityProps) {
   const level = levelFromDifficulty(difficultyForStats(stats, override));
   const choiceCount = 3 + Math.floor(level / 2);
   const [challenge, setChallenge] = useState(() => makeRotation(level));
@@ -420,6 +436,66 @@ function RotationReactor({ stats, override, onResult }: ActivityProps) {
         </div>
       </div>
       {feedback && <FeedbackBanner feedback={feedback} onNext={next} />}
+    </GameShell>
+  );
+}
+
+*/
+
+function RotationReactor({ stats, override, onResult }: ActivityProps) {
+  const [challenge, setChallenge] = useState(makeRotation);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [selected, setSelected] = useState<Point | null>(null);
+  const [score, setScore] = useState(0);
+  const [consecutiveIncorrect, setConsecutiveIncorrect] = useState(0);
+  const [status, setStatus] = useState<'playing' | 'won' | 'lost'>('playing');
+  const radians = ({ 90: 'π/2', 180: 'π', 270: '3π/2', 360: '2π' } as const)[challenge.angle];
+
+  const answer = (choice: Point) => {
+    if (feedback || status !== 'playing') return;
+    setSelected(choice);
+    const correct = samePoint(choice, challenge.answer);
+    onResult(correct);
+    const nextScore = score + (correct ? 1 : -1);
+    const nextMisses = correct ? 0 : consecutiveIncorrect + 1;
+    setScore(nextScore);
+    setConsecutiveIncorrect(nextMisses);
+    setFeedback({
+      correct,
+      message: correct
+        ? `Correct. The resulting endpoint is ${pointLabel(challenge.answer)}.`
+        : `The correct endpoint is ${pointLabel(challenge.answer)}. ${challenge.type === 'coordinates' ? 'Coordinates turn opposite to the rotating axes.' : 'The vector turns in the stated direction.'}`,
+    });
+    if (nextScore >= 5) setStatus('won');
+    else if (nextMisses >= 2) setStatus('lost');
+  };
+  const next = () => { setChallenge(makeRotation()); setSelected(null); setFeedback(null); };
+  const restart = () => {
+    setChallenge(makeRotation());
+    setSelected(null);
+    setFeedback(null);
+    setScore(0);
+    setConsecutiveIncorrect(0);
+    setStatus('playing');
+  };
+
+  return (
+    <GameShell icon={RotateCw} color="purple" skill="Rotation" title="Rotation Reactor" headingId="rotate-game-heading" instructions="Plot the new endpoint after the stated vector or coordinate-system rotation." stats={stats} difficulty={0} override={override} showDifficulty={false} scoreOverride={<><span><strong>{score}</strong> score</span><span><strong>{consecutiveIncorrect}</strong>/2 consecutive misses</span><span>Win at <strong>5</strong></span></>}>
+      <div className="fun-prompt" data-testid="rotation-prompt">
+        Rotate the <strong>{challenge.type === 'vector' ? 'vector' : 'coordinate system'}</strong> <strong>{radians} radians {challenge.clockwise ? 'clockwise' : 'counterclockwise'}</strong>.
+        <small>Original vector endpoint: {pointLabel(challenge.point)} • fixed range −6 to 6</small>
+      </div>
+      <div className="fun-play-grid">
+        <CoordinateGrid range={6} vectors={[{ endpoint: challenge.point, label: `v = ${pointLabel(challenge.point)}` }]} interactive={!feedback && status === 'playing'} selected={selected} onSelect={answer} ariaLabel={`Vector from the origin to ${pointLabel(challenge.point)}. Select the resulting endpoint on a grid from negative 6 to 6.`} />
+        <div className="fun-rotation-help">
+          <strong>{challenge.type === 'vector' ? 'Vector rotation' : 'Coordinate-system rotation'}</strong>
+          <p>{challenge.type === 'vector' ? 'The axes stay fixed while the vector turns.' : 'The vector stays fixed in space while the axes turn; its coordinate values transform oppositely.'}</p>
+          <p>Select the resulting endpoint directly on the grid.</p>
+        </div>
+      </div>
+      {feedback && status === 'playing' && <FeedbackBanner feedback={feedback} onNext={next} />}
+      {status === 'won' && <div className="rotation-game-result victory fun-celebrate" role="status"><Sparkles aria-hidden="true" /><strong>Reactor stabilized! You win!</strong><span>You reached 5 points.</span><button type="button" onClick={restart}>Play again</button></div>}
+      {status === 'lost' && <div className="rotation-game-result game-over" role="alert"><strong>Game Over</strong><span>Two consecutive incorrect answers ended the run.</span><button type="button" onClick={restart}>Restart activity</button></div>}
     </GameShell>
   );
 }
@@ -496,10 +572,10 @@ export function FunZoneMode() {
         totalAttempts={totalAttempts}
         description={activeGame === 'plot'
           ? 'Plot ordered pairs on a fixed coordinate grid where both x and y run from −7 to 7. Your best streak is saved in this browser.'
-          : 'These games ramp up with your score, or you can choose a fixed difficulty. Your best streaks are saved in this browser.'}
+          : 'Rotate vectors or coordinate systems on a fixed grid. Reach 5 points before missing twice in a row.'}
         override={override}
         onOverrideChange={setOverride}
-        showDifficulty={activeGame !== 'plot'}
+        showDifficulty={false}
       />
 
       <GameSelectorNav games={games} activeGame={activeGame} onSelect={setActiveGame} allStats={allStats} />

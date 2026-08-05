@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import App from '../App';
-import { difficultyFromCorrect } from '../components/FunZoneMode';
+import { difficultyFromCorrect, rotatePoint } from '../components/FunZoneMode';
 
 const openFunZone = () => {
   render(<App />);
@@ -45,7 +45,11 @@ describe('Fun Zone', () => {
 
     fireEvent.click(within(selector).getByRole('button', { name: /Rotation Reactor/ }));
     expect(screen.getByRole('heading', { name: 'Rotation Reactor' })).toBeVisible();
-    expect(screen.getByLabelText('Difficulty 0%')).toBeVisible();
+    expect(screen.queryByLabelText(/Difficulty/)).not.toBeInTheDocument();
+    expect(screen.getByTestId('rotation-prompt')).toHaveTextContent(/vector|coordinate system/);
+    expect(screen.getByTestId('rotation-prompt')).toHaveTextContent(/π\/2|π|3π\/2|2π/);
+    expect(screen.getByRole('img', { name: /Vector from the origin/ })).toHaveClass('interactive');
+    expect(screen.getByLabelText('Game score')).toHaveTextContent('0 score');
   });
 
   it('also gives the other physics topics their own Fun Zone', () => {
@@ -91,13 +95,19 @@ describe('Fun Zone', () => {
     expect(screen.getByLabelText('1 total points from 1 attempts')).toBeInTheDocument();
   });
 
-  it('lets a student pick a fixed difficulty instead of the automatic ramp', () => {
+  it('removes difficulty controls from Rotation Reactor and uses a fixed grid', () => {
     openFunZone();
 
     const selector = screen.getByRole('navigation', { name: 'Fun Zone activities' });
     fireEvent.click(within(selector).getByRole('button', { name: /Rotation Reactor/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Hard' }));
-    expect(screen.getByLabelText('Difficulty 80%')).toBeVisible();
+    expect(screen.queryByRole('group', { name: 'Difficulty mode' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('rotation-prompt')).toHaveTextContent('fixed range −6 to 6');
+  });
+
+  it('uses correct quarter-turn transformations in both directions', () => {
+    expect(rotatePoint({ x: 2, y: 3 }, 90, true)).toEqual({ x: 3, y: -2 });
+    expect(rotatePoint({ x: 2, y: 3 }, 90, false)).toEqual({ x: -3, y: 2 });
+    expect(rotatePoint({ x: 2, y: 3 }, 360, true)).toEqual({ x: 2, y: 3 });
   });
 
   it('calculates the exact capped difficulty progression', () => {

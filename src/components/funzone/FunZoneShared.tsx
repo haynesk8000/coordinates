@@ -172,6 +172,7 @@ export function GameShell({
   difficulty,
   override,
   showDifficulty = true,
+  scoreOverride,
   children,
 }: {
   icon: LucideIcon;
@@ -184,6 +185,7 @@ export function GameShell({
   difficulty: number;
   override: DifficultyOverride;
   showDifficulty?: boolean;
+  scoreOverride?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -196,7 +198,9 @@ export function GameShell({
         </div>
       </div>
       <p className="fun-instructions"><strong>How to play:</strong> {instructions}</p>
-      {showDifficulty
+      {scoreOverride
+        ? <div className="fun-score-strip" aria-label="Game score">{scoreOverride}</div>
+        : showDifficulty
         ? <ScoreStrip stats={stats} difficulty={difficulty} override={override} />
         : (
           <div className="fun-score-strip" aria-label="Game score">

@@ -1,40 +1,128 @@
-Update the **Projectile Motion** tab by modifying the visualization of the projectile flight. Preserve all existing functionality except where explicitly specified below.
+**AI Agent Task: Update the Rotation Reactor (Fun Zone → Coordinate Systems Tab)**
 
-#### Requirements
+Redesign the **Rotation Reactor** activity to focus on vector rotations and coordinate system rotations. Replace the current gameplay with the specifications below while preserving the overall look and feel of the Fun Zone.
 
-1. **Ground Scale**
+## 1. Replace the Point with a Vector
 
-   * Keep the **ground line** exactly the same length on the screen. Do **not** change the size of the interactive display or the length of the ground line.
-   * Redefine the world-coordinate scale so that the full length of the ground line represents **110 meters**.
+* Remove the single point currently displayed on the coordinate grid.
+* Replace it with a **vector** originating at the origin `(0, 0)` and terminating at the specified coordinate.
+* Display the vector with a clearly visible arrowhead.
+* The vector should remain fixed until the user submits an answer.
 
-2. **Vertical Scale**
+## 2. Question Types
 
-   * Keep the interactive display at its current height.
-   * Define the vertical world-coordinate scale so that the distance from the **ground line** to the **top edge of the interactive display** represents **65 meters**.
+Support two distinct question types:
 
-3. **Fixed World-to-Screen Mapping**
+### Type A: Vector Rotation
 
-   * Implement a **fixed world-to-screen transformation** based on the dimensions above:
+* Display a vector on the grid.
+* Ask the user to determine the vector's new endpoint after rotating the **vector** about the origin.
 
-     * Horizontal: **110 meters** across the full ground line.
-     * Vertical: **65 meters** from the ground line to the top of the display.
-   * This mapping must remain constant for all simulations.
+### Type B: Coordinate System Rotation
 
-4. **Disable Dynamic Scaling**
+* Display the same vector.
+* Ask the user to determine the coordinates of the vector when the **coordinate system** (axes) is rotated while the vector remains fixed in space.
+* Use the mathematically correct transformation for rotating the coordinate system.
 
-   * Do **not** automatically rescale, zoom, or adjust the visualization as the user changes launch speed, launch angle, launch height, or any other flight parameters.
-   * All trajectories must be rendered using the same fixed coordinate system.
+### Question Selection
 
-5. **Preserve Existing Functionality**
+* Randomly choose between **Vector Rotation** and **Coordinate System Rotation** for each new question.
+* Both question types should occur with approximately equal probability.
 
-   * Do **not** modify the projectile motion equations, physics calculations, controls, animations, or user interface.
-   * Only update the visualization's world-to-screen coordinate mapping.
+## 3. Fixed Coordinate Grid
 
-6. **Validation**
-   Before completing the task, verify that:
+Remove the adaptive difficulty system.
 
-   * The interactive display size is unchanged.
-   * The ground line visually remains the same length while representing **110 meters**.
-   * The distance from the ground line to the top of the display represents **65 meters**.
-   * The visualization never rescales as flight parameters change.
-   * All other projectile motion functionality continues to operate correctly.
+Use a fixed coordinate grid for the entire activity.
+
+Requirements:
+
+* X-axis ranges from **-6 to +6**.
+* Y-axis ranges from **-6 to +6**.
+* The origin remains centered.
+* Grid spacing is uniform.
+* All generated vectors must terminate within the valid grid boundaries.
+
+## 4. Rotation Parameters
+
+For every question, randomly determine:
+
+### Rotation Direction
+
+* Clockwise
+* Counterclockwise
+
+### Rotation Angle
+
+Randomly select one of the following angles (in radians):
+
+* π/2
+* π
+* 3π/2
+* 2π
+
+Each angle should have an equal probability of being selected.
+
+## 5. User Interaction
+
+* Display the original vector.
+* Clearly state:
+
+  * Whether the **vector** or the **coordinate system** is being rotated.
+  * The rotation direction.
+  * The rotation angle (in radians).
+* The user answers by selecting or plotting the resulting endpoint on the coordinate grid.
+* After submission, immediately evaluate the answer and provide clear Correct/Incorrect feedback before presenting the next question.
+
+## 6. Scoring
+
+Maintain a running score.
+
+### Correct Answer
+
+* Award **+1 point**.
+
+### Incorrect Answer
+
+* Deduct **1 point**.
+
+Display the current score throughout the activity.
+
+## 7. Winning Condition
+
+The activity is successfully completed when the user's cumulative score reaches **5 points**.
+
+Upon completion:
+
+* Display a clear success message.
+* Play the existing victory animation and sound effects (or equivalent celebration).
+* Prevent additional questions until the activity is restarted.
+
+## 8. Failure Condition
+
+Track consecutive incorrect answers.
+
+If the user answers **two consecutive questions incorrectly**:
+
+* End the activity immediately.
+* Display a **Game Over** message.
+* Prevent additional input until the activity is restarted.
+
+A correct answer resets the consecutive incorrect answer counter to zero.
+
+## 9. Activity Reset
+
+When the activity is restarted:
+
+* Reset the score to **0**.
+* Reset the consecutive incorrect answer count to **0**.
+* Generate a new random vector.
+* Continue using the fixed **-6 to +6** coordinate grid.
+* Resume random selection of question type, rotation direction, and rotation angle.
+
+## 10. General Requirements
+
+* Remove all adaptive or changing difficulty logic from the activity.
+* Ensure all vector rotations and coordinate system rotations use mathematically correct transformations.
+* Keep rendering, coordinate generation, and answer validation synchronized so the displayed vector and expected answer are always consistent.
+* Preserve existing UI conventions, accessibility features, and overall visual style unless explicitly modified by this specification.
