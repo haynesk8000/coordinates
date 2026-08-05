@@ -60,7 +60,7 @@ describe('Fun Zone', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Fun Zone' }));
 
     const selector = screen.getByRole('navigation', { name: 'Fun Zone activities' });
-    expect(within(selector).getAllByRole('button')).toHaveLength(3);
+    expect(within(selector).getAllByRole('button')).toHaveLength(1);
     expect(screen.getByRole('heading', { name: 'Cannon Game' })).toBeVisible();
   });
 

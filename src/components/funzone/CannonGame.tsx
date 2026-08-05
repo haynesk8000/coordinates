@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Crosshair, RotateCcw, Target } from 'lucide-react';
+import targetHitSoundUrl from '../../../explosion.mp3?url';
 import { formatPhysicsNumber, projectileAtTime, projectileFlightTime, type ProjectileInputs } from '../../physics/learningModules';
 import { RangeControl } from '../LearningModuleShared';
 import {
-  difficultyForStats,
   GameShell,
-  levelFromDifficulty,
   randomInt,
   type ActivityProps,
 } from './FunZoneShared';
@@ -20,6 +19,7 @@ const PHASE2_MAX_ANGLE = 90;
 const GRAVITY = 9.8;
 const HIT_TOLERANCE = 50;
 const MIN_TARGET = 5000;
+const MAX_TARGET = 9000;
 const ANIMATION_MS = 900;
 const FRAME_MS = 30;
 const MISS_EXPLOSION_MS = 500;
@@ -126,7 +126,7 @@ type ShotResult = {
 };
 type Explosion = { id: number; x: number; kind: 'miss' | 'hit' };
 type Crater = { id: number; x: number; kind: 'small' | 'large' };
-type SoundKind = 'launch' | 'flight' | 'miss-explosion' | 'hit-explosion';
+type SoundKind = 'launch' | 'flight' | 'miss-explosion';
 
 const readNumber = (key: string): number | null => {
   try {
@@ -149,10 +149,7 @@ const readRoundStats = (): RoundStats => {
 };
 
 export function CannonGame({ stats, override, onResult }: ActivityProps) {
-  const level = levelFromDifficulty(difficultyForStats(stats, override));
-  const maxTargetDistance = 9000 + level * 800;
-
-  const [seed] = useState(() => generateRoundSeed(maxTargetDistance));
+  const [seed] = useState(() => generateRoundSeed(MAX_TARGET));
   const [target, setTarget] = useState(seed.target);
   const [power, setPower] = useState(seed.power);
   const [angle, setAngle] = useState(seed.angle);
@@ -177,11 +174,13 @@ export function CannonGame({ stats, override, onResult }: ActivityProps) {
   const explosionTimeoutRef = useRef<number | null>(null);
   const effectIdRef = useRef(0);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const targetHitAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => () => {
     if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
     if (explosionTimeoutRef.current !== null) window.clearTimeout(explosionTimeoutRef.current);
     void audioContextRef.current?.close();
+    targetHitAudioRef.current?.pause();
   }, []);
 
   const playSound = (kind: SoundKind) => {
@@ -195,7 +194,6 @@ export function CannonGame({ stats, override, onResult }: ActivityProps) {
       launch: [90, 0.28, 0.16, 'square'],
       flight: [820, ANIMATION_MS / 1000, 0.035, 'sine'],
       'miss-explosion': [150, MISS_EXPLOSION_MS / 1000, 0.12, 'sawtooth'],
-      'hit-explosion': [70, HIT_EXPLOSION_MS / 1000, 0.2, 'square'],
     }[kind] as [number, number, number, OscillatorType];
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(frequency, context.currentTime);
@@ -205,6 +203,14 @@ export function CannonGame({ stats, override, onResult }: ActivityProps) {
     oscillator.connect(gain).connect(context.destination);
     oscillator.start();
     oscillator.stop(context.currentTime + duration);
+  };
+
+  const playTargetHitSound = () => {
+    const audio = targetHitAudioRef.current ?? new Audio(targetHitSoundUrl);
+    targetHitAudioRef.current = audio;
+    audio.pause();
+    audio.currentTime = 0;
+    void audio.play().catch(() => undefined);
   };
 
   const displayMax = useMemo(() => {
@@ -225,7 +231,8 @@ export function CannonGame({ stats, override, onResult }: ActivityProps) {
     const explosionKind: Explosion['kind'] = result.hit ? 'hit' : 'miss';
     const explosionDuration = result.hit ? HIT_EXPLOSION_MS : MISS_EXPLOSION_MS;
     setExplosion({ id: explosionId, x: explosionX, kind: explosionKind });
-    playSound(result.hit ? 'hit-explosion' : 'miss-explosion');
+    if (result.hit) playTargetHitSound();
+    else playSound('miss-explosion');
     explosionTimeoutRef.current = window.setTimeout(() => {
       setExplosion((current) => (current?.id === explosionId ? null : current));
       setCraters((current) => [...current, { id: explosionId, x: explosionX, kind: result.hit ? 'large' : 'small' }]);
@@ -314,7 +321,9 @@ export function CannonGame({ stats, override, onResult }: ActivityProps) {
   const startNewGame = () => {
     if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
     if (explosionTimeoutRef.current !== null) window.clearTimeout(explosionTimeoutRef.current);
-    const nextSeed = generateRoundSeed(maxTargetDistance);
+    const nextSeed = generateRoundSeed(MAX_TARGET);
+    targetHitAudioRef.current?.pause();
+    if (targetHitAudioRef.current) targetHitAudioRef.current.currentTime = 0;
     setTarget(nextSeed.target);
     setPower(nextSeed.power);
     setAngle(nextSeed.angle);
@@ -361,8 +370,9 @@ export function CannonGame({ stats, override, onResult }: ActivityProps) {
       headingId="cannon-game-heading"
       instructions="Destroy the target twice to win: first with a low-angle shot (0°–45°), then again with a high-angle shot (above 45° up to 90°). Choose an energy level (1–10) and a launch angle, then fire."
       stats={stats}
-      difficulty={difficultyForStats(stats, override)}
+      difficulty={0}
       override={override}
+      showDifficulty={false}
     >
       <div className="fun-prompt">
         <span className="cannon-phase-badge">{gameComplete ? 'Mission complete' : `Phase ${phase} of 2`}</span>

@@ -62,7 +62,7 @@ export function ProjectileMotionModule() {
     explore: 'Change the launch and scrub through time. The path, vectors, component values, and graphs all come from the same physical model.',
     explain: 'Build projectile equations from the initial conditions: choose axes, resolve velocity, apply gravity, and check the result against the path.',
     quiz: 'Reason from vectors, components, assumptions, and graphs. Feedback identifies the specific idea behind every answer.',
-    fun: 'Predict landing distances and read velocity vectors. Chase a high score or dial in your own difficulty.',
+    fun: 'Aim the cannon using projectile-motion reasoning. Chase a high score or dial in your own difficulty.',
   };
 
   return (

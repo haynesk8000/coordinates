@@ -1,41 +1,56 @@
-**AI Agent Task: Update the Rotation Reactor (Fun Zone → Coordinate Systems Tab)**
+**AI Agent Task: Update the Fun Zone (Projectile Motion Tab)**
 
-Modify the audio behavior for incorrect answers. **Do not change any gameplay mechanics, animations, scoring, or game flow.** This task is limited to updating the sound effects.
+Implement the following updates to all activities on the **Projectile Motion** tab.
 
-## Requirements
+## 1. Remove Difficulty Levels from All Activities
 
-### 1. First Incorrect Answer
+Remove the difficulty level system from every activity on the Projectile Motion tab.
 
-When the user answers a question incorrectly **and it is not their second consecutive incorrect answer**:
+### Requirements
 
-* Play the audio file **`ohoh.mp3`**.
-* Start the sound immediately after the answer has been evaluated as incorrect.
-* Synchronize the sound with the existing incorrect-answer animation.
-* Do not modify the current animation sequence or character behavior.
+* Remove all difficulty levels and progression logic.
+* Eliminate any adaptive difficulty algorithms or performance-based adjustments.
+* Remove all difficulty-related UI elements, including:
 
-### 2. Second Consecutive Incorrect Answer
+  * Difficulty selectors
+  * Difficulty labels
+  * Difficulty indicators
+  * Difficulty percentage displays
+  * Level progression controls
+* Configure each activity to use a single, fixed set of gameplay parameters for the entire game session.
+* Starting a new game should reset only the gameplay state (score, targets, animations, etc.), not any gameplay parameters.
 
-When the user answers **two consecutive questions incorrectly**, resulting in the character falling to their death and the game ending:
+Review each activity and remove any difficulty-dependent behavior, including (where applicable):
 
-* **Do not play** `ohoh.mp3`.
-* Instead, play **`falling.mp3`** when the fatal fall animation begins.
-* Synchronize the sound with the existing fall animation.
+* Target generation
+* Scoring modifiers
+* Time limits
+* Physics parameters
+* Projectile settings
+* Any other mechanics influenced by difficulty
 
-### 3. Preserve Existing Behavior
+## 2. Update the Cannon Game Target Hit Sound
 
-Do not modify any of the following:
+Modify the **Cannon Game** as follows:
 
-* Game mechanics
-* Scoring logic
-* Consecutive incorrect answer tracking
-* Character animations
-* Victory sequence
-* Game-over sequence
-* Question generation
-* Rotation logic
-* User interface
+* When the projectile successfully hits the target, play the audio file **`explosion.mp3`**.
+* Start playback at the beginning of the target-hit explosion animation so the sound is synchronized with the visual effect.
+* Replace the existing target-hit explosion sound with **`explosion.mp3`**.
+* Ensure the sound plays exactly once for each successful target hit and does not overlap or replay unintentionally.
 
-The only change is the audio behavior:
+## 3. Preserve Existing Functionality
 
-* **`ohoh.mp3`** for a non-fatal incorrect answer.
-* **`falling.mp3`** for the fatal fall after the second consecutive incorrect answer.
+Do **not** modify any other gameplay mechanics. Preserve the existing:
+
+* Projectile physics
+* Scoring rules
+* Animations
+* Game flow
+* Win and loss conditions
+* User interface layout (except for removing difficulty-related elements)
+* All other sound effects not explicitly replaced above
+
+The only changes should be:
+
+1. Complete removal of the difficulty level system from all Projectile Motion activities.
+2. Replacement of the Cannon Game's target-hit sound effect with **`explosion.mp3`**.

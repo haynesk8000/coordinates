@@ -29,29 +29,16 @@ describe('Fun Zone for every topic', () => {
     expect(screen.getByRole('heading', { name: secondGame })).toBeVisible();
   });
 
-  it('gives Projectile Motion a three-game arcade led by the Cannon Game', () => {
+  it('keeps only Cannon Game in the Projectile Motion arcade', () => {
     openTopicFunZone('Projectile Motion');
 
     const selector = screen.getByRole('navigation', { name: 'Fun Zone activities' });
-    expect(within(selector).getAllByRole('button')).toHaveLength(3);
+    expect(within(selector).getAllByRole('button')).toHaveLength(1);
     expect(screen.getByRole('heading', { name: 'Cannon Game' })).toBeVisible();
-
-    fireEvent.click(within(selector).getByRole('button', { name: /Range Rocket/ }));
-    expect(screen.getByRole('heading', { name: 'Range Rocket' })).toBeVisible();
-
-    fireEvent.click(within(selector).getByRole('button', { name: /Vector Detective/ }));
-    expect(screen.getByRole('heading', { name: 'Vector Detective' })).toBeVisible();
-  });
-
-  it('lets a Projectile Motion player answer a Range Rocket round', () => {
-    openTopicFunZone('Projectile Motion');
-    fireEvent.click(within(screen.getByRole('navigation', { name: 'Fun Zone activities' })).getByRole('button', { name: /Range Rocket/ }));
-
-    fireEvent.click(screen.getAllByRole('button', { name: /^\d+(\.\d+)? m$/ })[0]);
-
-    expect(screen.getByRole('status')).toBeVisible();
-    expect(screen.getByRole('button', { name: /Next challenge/ })).toBeVisible();
-    expect(screen.getByLabelText(/total points from 1 attempts/)).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Difficulty mode' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Difficulty \d+%/)).not.toBeInTheDocument();
+    expect(within(selector).queryByRole('button', { name: /Range Rocket/ })).not.toBeInTheDocument();
+    expect(within(selector).queryByRole('button', { name: /Vector Detective/ })).not.toBeInTheDocument();
   });
 
   it('lets a Projectile Motion player fire the cannon and see landing feedback', async () => {
