@@ -38,13 +38,77 @@ export const generateUuid = (): string =>
     return value.toString(16);
   });
 
-const digest = async (value: string) => {
-  const bytes = new TextEncoder().encode(value);
-  const hash = await crypto.subtle.digest('SHA-256', bytes);
-  return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join('');
+const fallbackSha256 = (value: string): string => {
+  const rightRotate = (word: number, amount: number) => (word >>> amount) | (word << (32 - amount));
+  const maxWord = 2 ** 32;
+  const words: number[] = [];
+  const constants: number[] = [];
+  const initialHash: number[] = [];
+  let primeCandidate = 2;
+
+  while (constants.length < 64) {
+    let isPrime = true;
+    for (let factor = 2; factor * factor <= primeCandidate; factor += 1) {
+      if (primeCandidate % factor === 0) { isPrime = false; break; }
+    }
+    if (isPrime) {
+      if (initialHash.length < 8) initialHash.push((Math.sqrt(primeCandidate) * maxWord) | 0);
+      constants.push((Math.cbrt(primeCandidate) * maxWord) | 0);
+    }
+    primeCandidate += 1;
+  }
+
+  const encoded = unescape(encodeURIComponent(value));
+  const bitLength = encoded.length * 8;
+  let binary = `${encoded}\x80`;
+  while (binary.length % 64 !== 56) binary += '\x00';
+  for (let index = 0; index < binary.length; index += 1) {
+    words[index >> 2] |= binary.charCodeAt(index) << ((3 - index) % 4) * 8;
+  }
+  words.push(Math.floor(bitLength / maxWord), bitLength);
+
+  const hash = [...initialHash];
+  for (let block = 0; block < words.length; block += 16) {
+    const schedule = words.slice(block, block + 16);
+    const state = [...hash];
+    for (let index = 0; index < 64; index += 1) {
+      const w15 = schedule[index - 15];
+      const w2 = schedule[index - 2];
+      if (index >= 16) {
+        const sigma0 = rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3);
+        const sigma1 = rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10);
+        schedule[index] = (schedule[index - 16] + sigma0 + schedule[index - 7] + sigma1) | 0;
+      }
+      const [a, b, c, d, e, f, g, h] = state;
+      const sum1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25);
+      const choice = (e & f) ^ (~e & g);
+      const first = (h + sum1 + choice + constants[index] + schedule[index]) | 0;
+      const sum0 = rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22);
+      const majority = (a & b) ^ (a & c) ^ (b & c);
+      const second = (sum0 + majority) | 0;
+      state.unshift((first + second) | 0);
+      state[4] = (state[4] + first) | 0;
+      state.pop();
+    }
+    for (let index = 0; index < 8; index += 1) hash[index] = (hash[index] + state[index]) | 0;
+  }
+
+  return hash.map((word) => (word >>> 0).toString(16).padStart(8, '0')).join('');
 };
 
-const randomValue = () => crypto.getRandomValues(new Uint32Array(1))[0];
+export const digest = async (value: string) => {
+  const bytes = new TextEncoder().encode(value);
+  if (globalThis.crypto?.subtle) {
+    const hash = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+  return fallbackSha256(value);
+};
+
+const randomValue = () => {
+  if (globalThis.crypto?.getRandomValues) return globalThis.crypto.getRandomValues(new Uint32Array(1))[0];
+  return Math.floor(Math.random() * 2 ** 32);
+};
 export const currentUser = (): User | null => {
   const session = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
   if (!session) return null;

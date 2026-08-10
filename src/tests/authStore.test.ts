@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { generateUuid, register } from '../auth/authStore';
+import { digest, generateUuid, register } from '../auth/authStore';
 
 describe('authentication identifiers', () => {
   beforeEach(() => localStorage.clear());
@@ -16,5 +16,9 @@ describe('authentication identifiers', () => {
     expect(result.user.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(result.verificationToken).toMatch(/^[0-9a-f-]{36}$/);
     expect(result.user.id).not.toBe(result.verificationToken);
+  });
+
+  it('produces a standard SHA-256 hash', async () => {
+    expect(await digest('42')).toBe('73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049');
   });
 });
