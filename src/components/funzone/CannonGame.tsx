@@ -9,9 +9,13 @@ import {
   type ActivityProps,
 } from './FunZoneShared';
 
-const MIN_POWER = 1;
-const MAX_POWER = 10;
-const POWER_LEVELS = Array.from({ length: MAX_POWER - MIN_POWER + 1 }, (_, index) => index + MIN_POWER);
+const MIN_POWER = 0;
+const MAX_POWER = 4;
+const POWER_STEP = 0.25;
+export const POWER_LEVELS = Array.from(
+  { length: Math.round((MAX_POWER - MIN_POWER) / POWER_STEP) + 1 },
+  (_, index) => MIN_POWER + index * POWER_STEP,
+);
 const ANGLE_STEP = 0.5;
 const PHASE1_MIN_ANGLE = 0;
 const PHASE1_MAX_ANGLE = 45;
@@ -30,7 +34,12 @@ const MAX_INITIAL_LANDING_FRACTION = 0.5;
 const BEST_KEY = 'physics-motion-lab-projectile-motion-cannon-best-v1';
 const ROUNDS_KEY = 'physics-motion-lab-projectile-motion-cannon-rounds-v1';
 
-const muzzleVelocity = (power: number) => 120 + power * 25;
+// Preserve the old energy-1 launch speed as the baseline. Since level-ground
+// projectile range is proportional to speed squared, scaling speed by the
+// square root of energy makes the actual trajectory range linear in energy.
+const BASELINE_MUZZLE_VELOCITY = 145;
+export const muzzleVelocity = (energy: number) =>
+  BASELINE_MUZZLE_VELOCITY * Math.sqrt(Math.max(0, energy));
 
 const inputsFor = (power: number, angleDegrees: number): ProjectileInputs => ({
   speed: muzzleVelocity(power),
@@ -39,7 +48,7 @@ const inputsFor = (power: number, angleDegrees: number): ProjectileInputs => ({
   initialHeight: 0,
 });
 
-const rangeFor = (power: number, angleDegrees: number): number => {
+export const rangeFor = (power: number, angleDegrees: number): number => {
   const inputs = inputsFor(power, angleDegrees);
   return projectileAtTime(inputs, projectileFlightTime(inputs)).position.x;
 };
@@ -59,6 +68,7 @@ type Phase = 1 | 2;
 // 45° so its complement lands comfortably above it, leaving Phase 2 solvable.
 const solvablePhaseAngles = (power: number, target: number): { low: number; high: number } | null => {
   const velocity = muzzleVelocity(power);
+  if (velocity === 0) return null;
   const ratio = (GRAVITY * target) / (velocity * velocity);
   if (ratio <= 0 || ratio >= 1) return null;
   const low = (0.5 * Math.asin(ratio) * 180) / Math.PI;
@@ -368,7 +378,7 @@ export function CannonGame({ stats, override, onResult }: ActivityProps) {
       skill="Projectile artillery"
       title="Cannon Game"
       headingId="cannon-game-heading"
-      instructions="Destroy the target twice to win: first with a low-angle shot (0°–45°), then again with a high-angle shot (above 45° up to 90°). Choose an energy level (1–10) and a launch angle, then fire."
+      instructions="Destroy the target twice to win: first with a low-angle shot (0°–45°), then again with a high-angle shot (above 45° up to 90°). Choose an energy level (0–4) and a launch angle, then fire."
       stats={stats}
       difficulty={0}
       override={override}
@@ -481,7 +491,7 @@ export function CannonGame({ stats, override, onResult }: ActivityProps) {
                 disabled={firing || roundWon}
                 onClick={() => setPower(level)}
               >
-                {level}
+                {level === 0 ? '0' : level.toFixed(2)}
               </button>
             ))}
           </div>

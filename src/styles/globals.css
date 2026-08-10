@@ -817,6 +817,40 @@ input[type="range"] {
   font-size: clamp(1.2rem, 2vw, 1.75rem);
 }
 
+.quiz-illustration { margin: 1rem 0 1.2rem; border: 1px solid #c8d4e3; border-radius: 16px; overflow: hidden; background: #f8fbff; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 70%); }
+.quiz-illustration svg { display: block; width: 100%; height: auto; max-height: 300px; font-family: inherit; }
+.quiz-sky { fill: #edf7ff; }
+.quiz-paper { fill: #fbfcff; }
+.quiz-land { fill: none; stroke: #536a48; stroke-width: 8; stroke-linejoin: round; }
+.quiz-ground, .quiz-track { stroke: #536a48; stroke-width: 5; }
+.quiz-wall { fill: #b49b83; stroke: #6d5847; stroke-width: 2; }
+.quiz-trajectory { fill: none; stroke: #7048a8; stroke-width: 3; stroke-dasharray: 8 6; }
+.quiz-object { fill: #f06449; stroke: #713326; stroke-width: 2; }
+.quiz-origin, .quiz-center { fill: #172b4d; }
+.quiz-axis { stroke: #263b5c; stroke-width: 2.5; }
+.quiz-axis.axis-one { stroke: #176b87; }
+.quiz-axis.axis-two { stroke: #8b4f18; }
+.quiz-vector { fill: none; stroke-width: 3; }
+.quiz-vector.velocity { stroke: #176b87; }
+.quiz-vector.gravity, .quiz-vector.acceleration { stroke: #b63f3f; }
+.quiz-vector.secondary { stroke: #8b4f18; }
+.quiz-illustration marker path { fill: context-stroke; }
+.quiz-label { fill: #172b4d; font-size: 16px; font-weight: 800; }
+.quiz-muted-label { fill: #3e516c; font-size: 13px; font-weight: 650; }
+.quiz-guide, .quiz-radius { fill: none; stroke: #718299; stroke-width: 2; stroke-dasharray: 5 4; }
+.quiz-angle { fill: none; stroke: #8b4f18; stroke-width: 2; }
+.quiz-cannon { fill: #53677f; stroke: #263b5c; stroke-width: 2; }
+.quiz-motion-dot { fill: #176b87; stroke: #0e4052; stroke-width: 1.5; }
+.quiz-graph { fill: none; stroke: #7048a8; stroke-width: 4; }
+.quiz-vehicle { fill: #f1b84b; stroke: #674b18; stroke-width: 3; }
+.quiz-wheel { fill: #263b5c; stroke: #fff; stroke-width: 3; }
+.quiz-person { fill: #f06449; }
+.quiz-person-line { fill: none; stroke: #263b5c; stroke-width: 4; stroke-linecap: round; }
+.quiz-river { fill: #cceaf3; }
+.quiz-bank { stroke: #536a48; stroke-width: 5; }
+.quiz-boat { fill: #f1b84b; stroke: #674b18; stroke-width: 2; }
+.quiz-orbit { fill: none; stroke: #7789a5; stroke-width: 3; }
+
 .choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1322,7 +1356,7 @@ textarea {
 .cannon-controls h3 { margin: 0 0 0.6rem; font-size: 1rem; }
 .cannon-power-row { margin-bottom: 0.85rem; }
 .cannon-power-row > span { display: block; margin-bottom: 0.4rem; font-weight: 750; font-size: 0.85rem; color: var(--muted); }
-.cannon-power-buttons { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 0.35rem; }
+.cannon-power-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 0.35rem; }
 .cannon-power-buttons button { min-height: 40px; padding: 0; font-weight: 800; }
 .cannon-power-buttons button.active { border-color: #a9312b; color: #a9312b; background: #fff1ef; }
 .cannon-fire-row { display: flex; gap: 0.65rem; margin-top: 0.85rem; }
@@ -1333,7 +1367,7 @@ textarea {
 .cannon-score-panel span { color: #606779; font-size: 0.78rem; font-weight: 700; }
 
 @media (max-width: 640px) {
-  .cannon-power-buttons { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .cannon-power-buttons { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 .fun-control-card,

@@ -4,6 +4,7 @@ import { buildQuestionBank, shuffleQuestionChoices } from '../quiz/questionBank'
 import { emptyScore, updateScore, type QuizScore } from '../quiz/scoring';
 import type { QuizQuestion } from '../quiz/questionTypes';
 import type { ProjectileParameters } from '../physics/projectile';
+import { QuizIllustration } from './QuizIllustration';
 
 type Props = {
   params: ProjectileParameters;
@@ -139,6 +140,8 @@ function ShortQuestion({
 
 export function QuizMode({ params, onReviewExplain, onTryWalkthrough }: Props) {
   const questionPool = useMemo(() => buildQuestionBank(params), [params]);
+  const [score, setScore] = useState<QuizScore>(() => loadScore());
+  const scoreRef = useRef(score);
   const [quizVersion, setQuizVersion] = useState(0);
   const previousQuizSignature = useRef('');
   const questions = useMemo(() => {
@@ -149,8 +152,6 @@ export function QuizMode({ params, onReviewExplain, onTryWalkthrough }: Props) {
   }, [questionPool, quizVersion]);
   const [index, setIndex] = useState(0);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [score, setScore] = useState<QuizScore>(() => loadScore());
-  const scoreRef = useRef(score);
   const question = questions[index];
 
   useEffect(() => {
@@ -215,6 +216,7 @@ export function QuizMode({ params, onReviewExplain, onTryWalkthrough }: Props) {
           Question {index + 1} of {questions.length} from a {questionPool.length}-question pool
         </p>
         <h2 id="quiz-heading">{question.prompt}</h2>
+        <QuizIllustration moduleId="coordinate-systems" prompt={question.prompt} />
         {question.type === 'components' ? (
           <ComponentQuestion question={question} disabled={Boolean(feedback)} onAnswer={answerQuestion} />
         ) : question.type === 'short' ? (

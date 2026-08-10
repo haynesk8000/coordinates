@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { CheckCircle2, Compass, FlaskConical, Gamepad2, GraduationCap, RotateCcw, XCircle } from 'lucide-react';
 import { ModeSwitcher, type Mode } from './ModeSwitcher';
+import { QuizIllustration } from './QuizIllustration';
 
 export type CoreMode = Exclude<Mode, 'fun'>;
 
@@ -160,6 +161,7 @@ export function ConceptQuiz({
       <section className="panel quiz-card" aria-labelledby={`${moduleId}-quiz-heading`}>
         <p className="eyebrow">Question {index + 1} of {questions.length} • {question.skill}</p>
         <h2 id={`${moduleId}-quiz-heading`}>{question.prompt}</h2>
+        <QuizIllustration moduleId={moduleId} prompt={question.prompt} />
         <div className="choice-grid">
           {question.choices.map((choice) => <button key={choice} type="button" disabled={Boolean(feedback)} onClick={() => answer(choice)}>{choice}</button>)}
         </div>

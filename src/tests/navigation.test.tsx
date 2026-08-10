@@ -41,6 +41,28 @@ describe('application navigation', () => {
     expect(activeTopicPanel().getByText(/At the highest point/)).toBeVisible();
   });
 
+  it('shows the Coordinate Systems quiz content when its Quiz tab is selected', () => {
+    render(<App />);
+
+    const learningModes = within(screen.getByRole('tablist', { name: 'Learning mode' }));
+    fireEvent.click(learningModes.getByRole('tab', { name: 'Quiz' }));
+
+    expect(activeTopicPanel().getByText(/Question 1 of 10/)).toBeVisible();
+    expect(activeTopicPanel().getByRole('heading', { name: 'Score' })).toBeVisible();
+  });
+
+  it('provides an accessible illustration for every topic quiz', () => {
+    render(<App />);
+
+    for (const topic of ['Coordinate Systems', 'Projectile Motion', 'Motion Diagrams', 'Relative Motion', 'Uniform Circular Motion']) {
+      fireEvent.click(topLevelTabs().getByRole('tab', { name: topic }));
+      const panel = activeTopicPanel();
+      const modes = within(panel.getByRole('tablist', { name: 'Learning mode' }));
+      fireEvent.click(modes.getByRole('tab', { name: 'Quiz' }));
+      expect(panel.getByRole('img')).toHaveAccessibleName();
+    }
+  });
+
   it('preserves coordinate-system state while visiting another topic', () => {
     render(<App />);
     const preset = screen.getByLabelText('Coordinate preset');
