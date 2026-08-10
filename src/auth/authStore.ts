@@ -28,6 +28,16 @@ export const listUsers = () => readUsers();
 export const sortPeople = <T extends Pick<User, 'lastName' | 'firstName'>>(people: T[]) =>
   [...people].sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName));
 
+// crypto.randomUUID() is unavailable in some browsers when the app is served
+// outside a secure context. Generate an RFC 4122 version-4 UUID locally so
+// account creation also works on classroom LAN and plain-HTTP deployments.
+export const generateUuid = (): string =>
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+    const randomNibble = Math.floor(Math.random() * 16);
+    const value = character === 'x' ? randomNibble : (randomNibble & 0x3) | 0x8;
+    return value.toString(16);
+  });
+
 const digest = async (value: string) => {
   const bytes = new TextEncoder().encode(value);
   const hash = await crypto.subtle.digest('SHA-256', bytes);
@@ -48,9 +58,9 @@ export async function register(firstName: string, lastName: string, email: strin
   if (users.some((user) => user.email === normalizedEmail)) throw new Error('An account already uses that email.');
   const pin = String(randomValue() % 100).padStart(2, '0');
   const user: User = {
-    id: crypto.randomUUID(), firstName: firstName.trim(), lastName: lastName.trim(), email: normalizedEmail,
+    id: generateUuid(), firstName: firstName.trim(), lastName: lastName.trim(), email: normalizedEmail,
     pinHash: await digest(pin), role: users.length === 0 ? 'administrator' : 'student', verified: false,
-    verificationToken: crypto.randomUUID(), progress: {}, createdAt: new Date().toISOString(),
+    verificationToken: generateUuid(), progress: {}, createdAt: new Date().toISOString(),
   };
   writeUsers([...users, user]);
   return { user, pin, verificationToken: user.verificationToken };
