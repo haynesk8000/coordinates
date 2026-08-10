@@ -9,6 +9,7 @@ export type User = {
   role: UserRole;
   verified: boolean;
   verificationToken: string;
+  pinResetToken?: string;
   instructorId?: string;
   progress: Record<string, string>;
   createdAt: string;
@@ -105,9 +106,8 @@ export const digest = async (value: string) => {
   return fallbackSha256(value);
 };
 
-const randomValue = () => {
-  if (globalThis.crypto?.getRandomValues) return globalThis.crypto.getRandomValues(new Uint32Array(1))[0];
-  return Math.floor(Math.random() * 2 ** 32);
+const validatePin = (pin: string) => {
+  if (!/^\d{4}$/.test(pin)) throw new Error('PIN must contain exactly 4 numeric digits.');
 };
 export const currentUser = (): User | null => {
   const session = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
@@ -116,18 +116,18 @@ export const currentUser = (): User | null => {
   return user ?? null;
 };
 
-export async function register(firstName: string, lastName: string, email: string) {
+export async function register(firstName: string, lastName: string, email: string, pin: string) {
   const users = readUsers();
   const normalizedEmail = email.trim().toLowerCase();
   if (users.some((user) => user.email === normalizedEmail)) throw new Error('An account already uses that email.');
-  const pin = String(randomValue() % 100).padStart(2, '0');
+  validatePin(pin);
   const user: User = {
     id: generateUuid(), firstName: firstName.trim(), lastName: lastName.trim(), email: normalizedEmail,
     pinHash: await digest(pin), role: users.length === 0 ? 'administrator' : 'student', verified: false,
     verificationToken: generateUuid(), progress: {}, createdAt: new Date().toISOString(),
   };
   writeUsers([...users, user]);
-  return { user, pin, verificationToken: user.verificationToken };
+  return { user, verificationToken: user.verificationToken };
 }
 
 export function verifyEmail(token: string) {
@@ -141,6 +141,7 @@ export function verifyEmail(token: string) {
 }
 
 export async function login(email: string, pin: string, remember: boolean) {
+  validatePin(pin);
   const user = readUsers().find((item) => item.email === email.trim().toLowerCase());
   if (!user || user.pinHash !== await digest(pin)) throw new Error('Email or PIN is incorrect.');
   if (!user.verified) throw new Error('Verify your email before logging in.');
@@ -151,10 +152,24 @@ export async function login(email: string, pin: string, remember: boolean) {
 
 export const logout = () => { syncProgress(); localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); };
 
-export function recoverPin(email: string) {
-  const exists = readUsers().some((user) => user.email === email.trim().toLowerCase());
-  if (!exists) throw new Error('No account was found for that email.');
-  return 'If this address is registered, its PIN has been sent.';
+export function beginPinReset(email: string) {
+  const users = readUsers();
+  const user = users.find((item) => item.email === email.trim().toLowerCase());
+  if (!user) throw new Error('No account was found for that email.');
+  user.pinResetToken = generateUuid();
+  writeUsers(users);
+  return { email: user.email, token: user.pinResetToken };
+}
+
+export async function resetPin(token: string, pin: string) {
+  validatePin(pin);
+  const users = readUsers();
+  const user = users.find((item) => item.pinResetToken === token);
+  if (!user) throw new Error('That PIN reset link is invalid.');
+  user.pinHash = await digest(pin);
+  delete user.pinResetToken;
+  writeUsers(users);
+  return user;
 }
 
 export function updateInstructor(instructorId: string) {

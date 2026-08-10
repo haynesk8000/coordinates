@@ -1,75 +1,105 @@
-**AI Agent Task: Update the Cannon Game (Fun Zone → Projectile Motion Tab)**
+**AI Agent Task: Modify User Registration PIN Handling**
 
-Modify the **Cannon Game** energy control and projectile distance calculation.
+Update the user registration process to allow users to create their own PIN instead of using a system-generated PIN.
 
-### 1. Update the Energy Scale
+## 1. Remove Generated PIN Logic
 
-Change the **Energy Level** control so that it:
+Modify the registration workflow to remove the existing behavior where the application:
 
-* Has a minimum value of **0**.
-* Has a maximum value of **4**.
-* Uses increments of **0.25**.
-* Displays the available values clearly:
+* Automatically generates a random 2-digit PIN.
+* Sends the generated PIN to the user by email.
+* Uses the generated PIN for future logins.
 
-**0, 0.25, 0.50, 0.75, 1.00, 1.25, 1.50, 1.75, 2.00, 2.25, 2.50, 2.75, 3.00, 3.25, 3.50, 3.75, 4.00**
+Remove all code, database fields, validation logic, and email content specifically related to the generated 2-digit PIN.
 
-### 2. Establish a Linear Energy-to-Distance Relationship
+## 2. User-Created 4-Digit PIN
 
-Modify the projectile physics/game calculation so that **distance traveled is directly proportional to the selected Energy Level**.
+During registration, require the user to create their own PIN.
 
-The relationship must satisfy:
+### Registration Form Requirements
 
-* **Energy × 1 → baseline distance**
-* **Energy × 2 → 2× the baseline distance**
-* **Energy × 3 → 3× the baseline distance**
-* **Energy × 4 → 4× the baseline distance**
+Add a required field:
 
-In mathematical terms:
+* **4-Digit PIN**
 
-**Distance ∝ Energy**
+The user must:
 
-or:
+* Enter exactly 4 numeric digits.
+* Confirm the PIN by entering it a second time.
+* Receive an error message if:
 
-**Distance = Baseline Distance × Energy**
+  * The PIN is not exactly 4 digits.
+  * The PIN contains non-numeric characters.
+  * The confirmation PIN does not match.
 
-where the baseline distance is the distance the projectile would travel at an Energy Level of **1.0**, with all other launch parameters unchanged.
+Example:
 
-### 3. Preserve Launch Angle Behavior
+```
+Create PIN:        [1234]
+Confirm PIN:       [1234]
+```
 
-* The launch angle should continue to affect the projectile trajectory normally.
-* The energy adjustment should scale the projectile's range without introducing nonlinear scaling.
-* Do not simply multiply the displayed distance after the projectile has landed; modify the underlying projectile calculation so that the actual trajectory and impact location reflect the new energy relationship.
+## 3. Store PIN Securely
 
-### 4. Verify the Relationship
+When registration is completed:
 
-Test the implementation using identical launch angles and compare the resulting ranges.
+* Store the user-created 4-digit PIN on the server.
+* Associate the PIN with the user's email account.
+* Store the PIN securely using appropriate protection methods.
+* Do not store PIN values in client-side storage.
 
-For example, if an Energy Level of **1.0** produces a 100-unit range:
+## 4. Email Verification
 
-| Energy | Expected Range |
-| -----: | -------------: |
-|   0.25 |             25 |
-|   0.50 |             50 |
-|   1.00 |            100 |
-|   2.00 |            200 |
-|   3.00 |            300 |
-|   4.00 |            400 |
+Keep the existing email verification process unchanged except:
 
-The exact baseline distance will depend on the existing game physics, but the **proportional relationship must remain linear**.
+* Remove the generated PIN from the verification email.
+* The email should only confirm that the user's email address is valid.
+* The verification link/button should continue to activate the account.
 
-### 5. Preserve Existing Functionality
+## 5. Login Changes
 
-Do not modify the existing:
+Update login behavior:
 
-* Cannon graphics
-* Target placement
-* Launch angle controls
-* Projectile animations
-* Collision detection
-* Explosion animations
-* Sound effects
-* Two-phase game mechanics
-* Scoring
-* Win/loss conditions
+Users should log in using:
 
-Only modify the **Energy Level scale** and the underlying **energy-to-projectile-distance relationship** as specified above.
+* Email address
+* Their self-created 4-digit PIN
+
+Remove any assumptions that the PIN is:
+
+* Two digits.
+* Automatically generated.
+* Sent by the system.
+
+## 6. Forgot PIN Functionality
+
+Update the Forgot PIN workflow:
+
+When a user requests a forgotten PIN:
+
+1. Verify the email address exists.
+2. Generate a secure PIN reset process.
+3. Allow the user to create a new 4-digit PIN.
+4. Store the new PIN on the server.
+5. Allow the user to log in using the new PIN.
+
+Do not email the PIN in plain text unless the existing security design explicitly requires it.
+
+## 7. Preserve Existing Application Behavior
+
+Do not modify any other functionality.
+
+Keep unchanged:
+
+* Welcome screen.
+* Registration flow.
+* Email verification.
+* Login process structure.
+* User roles.
+* Student/instructor/administrator permissions.
+* Progress tracking.
+* Server-side storage.
+* Instructor and administrator features.
+* All educational content and Fun Zone activities.
+
+The only modification should be replacing the **system-generated 2-digit registration PIN** with a **user-created 4-digit PIN**, while keeping the rest of the application unchanged.
