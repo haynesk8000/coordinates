@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { Crosshair, MoveRight, Radar, RotateCw, Sparkles } from 'lucide-react';
-import fallingSoundUrl from '../../falling.mp3?url';
+import wilhelmSplashSoundUrl from '../../Wilhelm_splash.mp3?url';
 import nonFatalMissSoundUrl from '../../ohoh.mp3?url';
 import {
   difficultyForStats,
@@ -17,16 +17,18 @@ import {
   type GameMeta,
   type Stats,
 } from './funzone/FunZoneShared';
+import { ShiftingCoordinatesGame } from './funzone/ShiftingCoordinatesGame';
 
 export { difficultyFromCorrect } from './funzone/FunZoneShared';
 
 type Point = { x: number; y: number };
-type GameId = 'plot' | 'rotate';
+type GameId = 'plot' | 'shift' | 'rotate';
 
-const gameIds: GameId[] = ['plot', 'rotate'];
+const gameIds: GameId[] = ['plot', 'shift', 'rotate'];
 
 const games: Array<GameMeta<GameId>> = [
   { id: 'plot', title: 'Target Plotter', tagline: 'Hit the ordered pair', skill: 'Plotting points', icon: Crosshair, color: 'coral', showDifficulty: false },
+  { id: 'shift', title: 'Shifting Coordinates', tagline: 'Move origins and flip axes', skill: 'Coordinate transformations', icon: MoveRight, color: 'blue', showDifficulty: false },
   { id: 'rotate', title: 'Rotation Reactor', tagline: 'Rotate vectors and frames', skill: 'Rotation', icon: RotateCw, color: 'purple', showDifficulty: false },
 ];
 
@@ -532,7 +534,7 @@ function RotationReactor({ stats, override, onResult }: ActivityProps) {
     nonFatalMissAudio.current?.pause();
   }, []);
   const playFallingSound = () => {
-    const audio = fallingAudio.current ?? new Audio(fallingSoundUrl);
+    const audio = fallingAudio.current ?? new Audio(wilhelmSplashSoundUrl);
     fallingAudio.current = audio;
     audio.pause();
     audio.currentTime = 0;
@@ -738,12 +740,14 @@ export function FunZoneMode() {
   return (
     <div className="fun-zone-layout">
       <FunZoneHero
-        eyebrow="Coordinate Arcade • 2 games"
+        eyebrow="Coordinate Arcade • 3 games"
         totalCorrect={totalCorrect}
         totalAttempts={totalAttempts}
         description={activeGame === 'plot'
           ? 'Plot ordered pairs on a fixed coordinate grid where both x and y run from −7 to 7. Your best streak is saved in this browser.'
-          : 'Rotate vectors or coordinate systems on a fixed grid. Reach 5 points before missing twice in a row.'}
+          : activeGame === 'shift'
+            ? 'Move the origin, reverse axes, and guide the character through five correct coordinate doors before losing three lives.'
+            : 'Rotate vectors or coordinate systems on a fixed grid. Reach 5 points before missing twice in a row.'}
         override={override}
         onOverrideChange={setOverride}
         showDifficulty={false}
@@ -752,6 +756,7 @@ export function FunZoneMode() {
       <GameSelectorNav games={games} activeGame={activeGame} onSelect={setActiveGame} allStats={allStats} />
 
       {activeGame === 'plot' && <TargetPlotter {...activityProps('plot')} />}
+      {activeGame === 'shift' && <ShiftingCoordinatesGame {...activityProps('shift')} />}
       {activeGame === 'rotate' && <RotationReactor {...activityProps('rotate')} />}
     </div>
   );

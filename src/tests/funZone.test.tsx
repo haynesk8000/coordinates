@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { beforeEach, describe, expect, it } from 'vitest';
 import App from '../App';
 import { difficultyFromCorrect, rotatePoint } from '../components/FunZoneMode';
+import { transformCoordinates } from '../components/funzone/ShiftingCoordinatesGame';
 
 const openFunZone = () => {
   render(<App />);
@@ -33,11 +34,17 @@ const submitPlot = (x: number, y: number) => {
 describe('Fun Zone', () => {
   beforeEach(() => window.localStorage.clear());
 
-  it('shows only Target Plotter and Rotation Reactor in the Coordinate Systems arcade', () => {
+  it('places Shifting Coordinates between Target Plotter and Rotation Reactor', () => {
     openFunZone();
 
     const selector = screen.getByRole('navigation', { name: 'Fun Zone activities' });
-    expect(within(selector).getAllByRole('button')).toHaveLength(2);
+    const gameButtons = within(selector).getAllByRole('button');
+    expect(gameButtons).toHaveLength(3);
+    expect(gameButtons.map((button) => button.textContent)).toEqual([
+      expect.stringContaining('Target Plotter'),
+      expect.stringContaining('Shifting Coordinates'),
+      expect.stringContaining('Rotation Reactor'),
+    ]);
     expect(screen.getByRole('heading', { name: 'Target Plotter' })).toBeVisible();
     expect(within(selector).queryByRole('button', { name: /Radar Reader/ })).not.toBeInTheDocument();
     expect(within(selector).queryByRole('button', { name: /Translation Trek/ })).not.toBeInTheDocument();
@@ -110,6 +117,12 @@ describe('Fun Zone', () => {
     expect(rotatePoint({ x: 2, y: 3 }, 90, true)).toEqual({ x: 3, y: -2 });
     expect(rotatePoint({ x: 2, y: 3 }, 90, false)).toEqual({ x: -3, y: 2 });
     expect(rotatePoint({ x: 2, y: 3 }, 360, true)).toEqual({ x: 2, y: 3 });
+  });
+
+  it('calculates origin shifts and axis reversals for Shifting Coordinates', () => {
+    expect(transformCoordinates({ x: 4, y: -1 }, { shiftX: 2, shiftY: 0, flipX: false, flipY: false })).toEqual({ x: 2, y: -1 });
+    expect(transformCoordinates({ x: 4, y: -1 }, { shiftX: 0, shiftY: -3, flipX: false, flipY: true })).toEqual({ x: 4, y: -2 });
+    expect(transformCoordinates({ x: -2, y: 5 }, { shiftX: 1, shiftY: 2, flipX: true, flipY: true })).toEqual({ x: 3, y: -3 });
   });
 
   it('calculates the exact capped difficulty progression', () => {
