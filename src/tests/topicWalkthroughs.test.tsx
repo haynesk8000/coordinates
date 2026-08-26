@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import App from '../App';
+import { renderAuthenticatedApp } from './renderAuthenticatedApp';
 
 const topics = () => within(screen.getByRole('tablist', { name: 'Physics topics' }));
 const activePanel = () => within(screen.getByRole('tabpanel'));
@@ -9,7 +9,7 @@ describe('Topic walkthroughs (replacing Discoveries)', () => {
   beforeEach(() => window.localStorage.clear());
 
   it('walks a student through concept, task, and check steps with live detection and retry', () => {
-    render(<App />);
+    renderAuthenticatedApp();
     fireEvent.click(topics().getByRole('tab', { name: 'Motion Diagrams' }));
     fireEvent.click(activePanel().getByRole('button', { name: /Start walkthrough/ }));
 
@@ -40,14 +40,14 @@ describe('Topic walkthroughs (replacing Discoveries)', () => {
   });
 
   it('persists step progress across a reload', () => {
-    const { unmount } = render(<App />);
+    const { unmount } = renderAuthenticatedApp();
     fireEvent.click(topics().getByRole('tab', { name: 'Motion Diagrams' }));
     fireEvent.click(activePanel().getByRole('button', { name: /Start walkthrough/ }));
     fireEvent.click(activePanel().getByRole('button', { name: /Next/ }));
     expect(activePanel().getByText('2 of 8 steps complete (25%)').textContent).toBeDefined();
 
     unmount();
-    render(<App />);
+    renderAuthenticatedApp();
     fireEvent.click(topics().getByRole('tab', { name: 'Motion Diagrams' }));
     expect(activePanel().getByRole('button', { name: /Continue walkthrough/ })).toBeVisible();
   });
@@ -57,7 +57,7 @@ describe('Topic walkthroughs (replacing Discoveries)', () => {
     ['Relative Motion'],
     ['Uniform Circular Motion'],
   ])('gives %s its own guided walkthrough in place of Discoveries', (topicName) => {
-    render(<App />);
+    renderAuthenticatedApp();
     fireEvent.click(topics().getByRole('tab', { name: topicName }));
 
     expect(activePanel().getByRole('heading', { name: 'Walkthrough' })).toBeVisible();
@@ -71,7 +71,7 @@ describe('Topic walkthroughs (replacing Discoveries)', () => {
     ['Relative Motion'],
     ['Uniform Circular Motion'],
   ])('positions the walkthrough launcher above the interactive display on %s, matching Coordinate Systems', (topicName) => {
-    render(<App />);
+    renderAuthenticatedApp();
     fireEvent.click(topics().getByRole('tab', { name: topicName }));
 
     const launcherHeading = activePanel().getByRole('heading', { name: 'Walkthrough' });
@@ -85,7 +85,7 @@ describe('Topic walkthroughs (replacing Discoveries)', () => {
   });
 
   it('marks the layout walkthrough-active while open so the simulation and feedback stay visible beside the popup', () => {
-    render(<App />);
+    renderAuthenticatedApp();
     fireEvent.click(topics().getByRole('tab', { name: 'Motion Diagrams' }));
 
     const launcherHeading = activePanel().getByRole('heading', { name: 'Walkthrough' });

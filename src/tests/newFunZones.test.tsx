@@ -1,11 +1,11 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import App from '../App';
+import { renderAuthenticatedApp } from './renderAuthenticatedApp';
 
 const topics = () => within(screen.getByRole('tablist', { name: 'Physics topics' }));
 
 const openTopicFunZone = (topicName: string) => {
-  render(<App />);
+  renderAuthenticatedApp();
   fireEvent.click(topics().getByRole('tab', { name: topicName }));
   fireEvent.click(screen.getByRole('tab', { name: 'Fun Zone' }));
 };
@@ -58,7 +58,7 @@ describe('cross-topic progress dashboard', () => {
   beforeEach(() => window.localStorage.clear());
 
   it('shows a summary card for every topic once opened', () => {
-    render(<App />);
+    renderAuthenticatedApp();
     fireEvent.click(screen.getByRole('button', { name: 'My progress' }));
 
     expect(screen.getByRole('heading', { name: 'My Progress' })).toBeVisible();

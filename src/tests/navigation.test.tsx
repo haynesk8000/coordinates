@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import App from '../App';
+import { renderAuthenticatedApp } from './renderAuthenticatedApp';
 
 const topLevelTabs = () => within(screen.getByRole('tablist', { name: 'Physics topics' }));
 
@@ -10,7 +10,7 @@ describe('application navigation', () => {
   beforeEach(() => window.localStorage.clear());
 
   it('shows five top-level physics topics', () => {
-    render(<App />);
+    renderAuthenticatedApp();
 
     expect(topLevelTabs().getAllByRole('tab')).toHaveLength(5);
     expect(topLevelTabs().getByRole('tab', { name: 'Coordinate Systems' })).toHaveAttribute(
@@ -21,7 +21,7 @@ describe('application navigation', () => {
   });
 
   it('gives each physics module reusable Explore, Explain, and Quiz tabs', () => {
-    render(<App />);
+    renderAuthenticatedApp();
 
     fireEvent.click(topLevelTabs().getByRole('tab', { name: 'Projectile Motion' }));
     const learningModes = within(screen.getByRole('tablist', { name: 'Learning mode' }));
@@ -42,7 +42,7 @@ describe('application navigation', () => {
   });
 
   it('shows the Coordinate Systems quiz content when its Quiz tab is selected', () => {
-    render(<App />);
+    renderAuthenticatedApp();
 
     const learningModes = within(screen.getByRole('tablist', { name: 'Learning mode' }));
     fireEvent.click(learningModes.getByRole('tab', { name: 'Quiz' }));
@@ -52,7 +52,7 @@ describe('application navigation', () => {
   });
 
   it('provides an accessible illustration for every topic quiz', () => {
-    render(<App />);
+    renderAuthenticatedApp();
 
     for (const topic of ['Coordinate Systems', 'Projectile Motion', 'Motion Diagrams', 'Relative Motion', 'Uniform Circular Motion']) {
       fireEvent.click(topLevelTabs().getByRole('tab', { name: topic }));
@@ -64,7 +64,7 @@ describe('application navigation', () => {
   });
 
   it('preserves coordinate-system state while visiting another topic', () => {
-    render(<App />);
+    renderAuthenticatedApp();
     const preset = screen.getByLabelText('Coordinate preset');
 
     fireEvent.change(preset, { target: { value: '4' } });
@@ -78,7 +78,7 @@ describe('application navigation', () => {
   });
 
   it('supports arrow-key navigation between top-level topics', () => {
-    render(<App />);
+    renderAuthenticatedApp();
     const coordinateSystems = topLevelTabs().getByRole('tab', { name: 'Coordinate Systems' });
 
     fireEvent.keyDown(coordinateSystems, { key: 'ArrowRight' });

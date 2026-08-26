@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { LogOut, Trophy } from 'lucide-react';
-import { currentUser, logout, syncProgress, type User } from './auth/authStore';
+import { logout, syncProgress, type User } from './auth/authStore';
 import { AdministratorDashboard, InstructorAssignment, InstructorDashboard } from './components/AccountDashboards';
 import { AuthScreen } from './components/AuthScreen';
 import { CircularMotionModule } from './components/CircularMotionModule';
@@ -18,8 +18,9 @@ import {
 } from './components/TopicSwitcher';
 
 function App() {
-  const testUser: User = { id: 'test-admin', firstName: 'Test', lastName: 'Administrator', email: 'test@example.com', pinHash: '', role: 'administrator', verified: true, verificationToken: '', progress: {}, createdAt: '2026-01-01T00:00:00.000Z' };
-  const [user, setUser] = useState<User | null>(() => import.meta.env.MODE === 'test' ? testUser : currentUser());
+  // Authentication deliberately begins as null: every fresh app visit starts
+  // at Welcome, even when a valid remembered session exists.
+  const [user, setUser] = useState<User | null>(null);
   const [topic, setTopic] = useState<PhysicsTopic>('coordinate-systems');
   const [showProgress, setShowProgress] = useState(false);
   const [accountView, setAccountView] = useState<'learning' | 'instructor' | 'administrator'>('learning');

@@ -116,6 +116,17 @@ export const currentUser = (): User | null => {
   return user ?? null;
 };
 
+/**
+ * Resumes a valid saved session after the user explicitly chooses to log in.
+ * Keeping this separate from `currentUser` lets the app always start at the
+ * welcome screen while preserving the convenience of an existing session.
+ */
+export const restoreAuthenticatedSession = (): User | null => {
+  const user = currentUser();
+  if (user) restoreProgress(user);
+  return user;
+};
+
 export async function register(firstName: string, lastName: string, email: string, pin: string) {
   const users = readUsers();
   const normalizedEmail = email.trim().toLowerCase();

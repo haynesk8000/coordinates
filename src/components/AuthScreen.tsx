@@ -1,6 +1,17 @@
 import { useState, type FormEvent } from 'react';
-import { beginPinReset, login, register, resetPin, verifyEmail, type User } from '../auth/authStore';
+import { beginPinReset, login, register, resetPin, restoreAuthenticatedSession, verifyEmail, type User } from '../auth/authStore';
 import labLogo from '../../Lab_Logo.png';
+
+// Vite resolves every matching file at build time, so new welcome artwork is
+// included automatically without maintaining a manual list of imports.
+const welcomeImageModules = import.meta.glob('../../Welcome_images/*', {
+  eager: true,
+  import: 'default',
+  query: '?url',
+}) as Record<string, string>;
+const welcomeImages = Object.entries(welcomeImageModules)
+  .filter(([path]) => /\.(png|jpe?g|webp|gif|avif|svg)$/i.test(path))
+  .map(([, imageUrl]) => imageUrl);
 
 type View = 'welcome' | 'login' | 'register' | 'verify' | 'reset-request' | 'reset';
 type PendingLink = { token: string; email: string };
@@ -15,6 +26,7 @@ const readMatchingPin = (data: FormData) => {
 
 export function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: User) => void }) {
   const [view, setView] = useState<View>('welcome');
+  const [welcomeImage] = useState(() => welcomeImages[Math.floor(Math.random() * welcomeImages.length)] ?? labLogo);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [pendingLink, setPendingLink] = useState<PendingLink | null>(null);
@@ -41,7 +53,18 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: User) 
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Something went wrong.'); }
   };
 
-  if (view === 'welcome') return <main className="auth-page"><section className="auth-card"><img className="auth-logo" src={labLogo} alt="Physics Motion Lab" /><p className="eyebrow">Interactive Physics</p><h1>Physics Motion Lab</h1><p>A projectile follows one path, but that path can be described by many different coordinate systems. Sign in to learn and keep your progress synchronized.</p><div className="auth-actions"><button className="primary" onClick={() => setView('register')}>Register</button><button onClick={() => setView('login')}>Login</button></div></section></main>;
+  const chooseLogin = () => {
+    const existingUser = restoreAuthenticatedSession();
+    if (existingUser) {
+      onAuthenticated(existingUser);
+      return;
+    }
+    setError('');
+    setMessage('');
+    setView('login');
+  };
+
+  if (view === 'welcome') return <main className="auth-page"><section className="auth-card auth-welcome-card"><img className="auth-logo" src={welcomeImage} alt="Featured physics scientist or physics history illustration" /><p className="eyebrow">Interactive Physics</p><h1>Physics Motion Lab</h1><p>A projectile follows one path, but that path can be described by many different coordinate systems. Sign in to learn and keep your progress synchronized.</p><div className="auth-actions"><button className="primary" onClick={() => setView('register')}>Register</button><button onClick={chooseLogin}>Login</button></div></section></main>;
 
   if (view === 'verify' && pendingLink) return <main className="auth-page"><section className="auth-card"><h1>Verify your email</h1><p>A verification message for <strong>{pendingLink.email}</strong> is ready. In this local development build, use the preview below.</p><div className="email-preview"><p>Welcome to Physics Motion Lab! Confirm your email address to activate your account.</p><button className="primary" onClick={() => { verifyEmail(pendingLink.token); setPendingLink(null); setMessage('Email verified. You can now log in.'); setView('login'); }}>Verify Email</button></div></section></main>;
 

@@ -1,11 +1,11 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import App from '../App';
+import { renderAuthenticatedApp } from './renderAuthenticatedApp';
 import { difficultyFromCorrect, rotatePoint } from '../components/FunZoneMode';
 import { transformCoordinates } from '../components/funzone/ShiftingCoordinatesGame';
 
 const openFunZone = () => {
-  render(<App />);
+  renderAuthenticatedApp();
   fireEvent.click(screen.getByRole('tab', { name: 'Fun Zone' }));
 };
 
@@ -62,7 +62,7 @@ describe('Fun Zone', () => {
   });
 
   it('also gives the other physics topics their own Fun Zone', () => {
-    render(<App />);
+    renderAuthenticatedApp();
     fireEvent.click(screen.getByRole('tab', { name: 'Projectile Motion' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Fun Zone' }));
 
