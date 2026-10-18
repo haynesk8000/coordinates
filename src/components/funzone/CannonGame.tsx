@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Crosshair, RotateCcw, Target } from 'lucide-react';
 import targetHitSoundUrl from '../../../explosion.mp3?url';
 import { formatPhysicsNumber, projectileAtTime, projectileFlightTime, type ProjectileInputs } from '../../physics/learningModules';
-import { RangeControl } from '../LearningModuleShared';
 import {
   GameShell,
   randomInt,
@@ -16,7 +15,7 @@ export const POWER_LEVELS = Array.from(
   { length: Math.round((MAX_POWER - MIN_POWER) / POWER_STEP) + 1 },
   (_, index) => MIN_POWER + index * POWER_STEP,
 );
-const ANGLE_STEP = 0.5;
+const ANGLE_STEP = 0.1;
 const PHASE1_MIN_ANGLE = 0;
 const PHASE1_MAX_ANGLE = 45;
 const PHASE2_MAX_ANGLE = 90;
@@ -96,7 +95,7 @@ const solveInitialConfig = (target: number): { power: number; angle: number } =>
   for (const candidatePower of shuffledPowers) {
     const solved = solvablePhaseAngles(candidatePower, desiredLanding);
     if (solved !== null) {
-      return { power: candidatePower, angle: solved.low };
+      return { power: candidatePower, angle: Number(solved.low.toFixed(1)) };
     }
   }
   return { power: MIN_POWER, angle: PHASE1_MIN_ANGLE };
@@ -378,7 +377,7 @@ export function CannonGame({ stats, override, onResult }: ActivityProps) {
       skill="Projectile artillery"
       title="Cannon Game"
       headingId="cannon-game-heading"
-      instructions="Destroy the target twice to win: first with a low-angle shot (0°–45°), then again with a high-angle shot (above 45° up to 90°). Choose an energy level (0–4) and a launch angle, then fire."
+      instructions="Destroy the target twice to win: first with a low-angle shot (0.0°–45.0°), then again with a high-angle shot (above 45.0° up to 90.0°). Choose an energy level (0–4) and a launch angle, then fire."
       stats={stats}
       difficulty={0}
       override={override}
@@ -391,8 +390,8 @@ export function CannonGame({ stats, override, onResult }: ActivityProps) {
           {gameComplete
             ? 'The target has been destroyed with both a low-angle and a high-angle shot.'
             : phase === 1
-              ? `Low-angle assault — launch angle limited to ${PHASE1_MIN_ANGLE}°–${PHASE1_MAX_ANGLE}°.`
-              : `High-angle assault — launch angle limited to ${formatPhysicsNumber(angleBounds.min, 1)}°–${angleBounds.max}°.`}
+              ? `Low-angle assault — launch angle limited to ${PHASE1_MIN_ANGLE.toFixed(1)}°–${PHASE1_MAX_ANGLE.toFixed(1)}°.`
+              : `High-angle assault — launch angle limited to ${angleBounds.min.toFixed(1)}°–${angleBounds.max.toFixed(1)}°.`}
           {' '}Hit within ±{HIT_TOLERANCE} m to advance • Attempt {attemptsThisRound + (roundWon || firing ? 0 : 1)}
         </small>
       </div>
@@ -496,7 +495,18 @@ export function CannonGame({ stats, override, onResult }: ActivityProps) {
             ))}
           </div>
         </div>
-        <RangeControl label="Launch angle" value={angle} min={angleBounds.min} max={angleBounds.max} step={ANGLE_STEP} unit="°" onChange={setAngle} />
+        <label className="range-control">
+          <span>Launch angle<strong>{angle.toFixed(1)}°</strong></span>
+          <input
+            aria-label="Launch angle"
+            type="range"
+            value={angle}
+            min={angleBounds.min}
+            max={angleBounds.max}
+            step={ANGLE_STEP}
+            onChange={(event) => setAngle(Number(event.target.value))}
+          />
+        </label>
         <div className="cannon-fire-row">
           <button type="button" className="fun-primary-button" disabled={firing || roundWon} onClick={fire}>
             <Crosshair aria-hidden="true" size={18} /> Fire!
@@ -527,7 +537,7 @@ export function CannonGame({ stats, override, onResult }: ActivityProps) {
                 : lastShot.diff > 0 ? 'Long — reduce energy or angle.' : 'Short — increase energy or angle.'}
             </strong>
             <p>
-              {lastShot.hit && phase === 1 && 'Destroy the target a second time with a high-angle launch above 45° to finish the mission. '}
+              {lastShot.hit && phase === 1 && 'Destroy the target a second time with a high-angle launch above 45.0° to finish the mission. '}
               {lastShot.hit && phase === 2 && 'Mission accomplished — the target was destroyed with both a low-angle and a high-angle shot. '}
               Landing distance: {formatPhysicsNumber(lastShot.landing, 0)} m
               {' • '}Off by {formatPhysicsNumber(Math.abs(lastShot.diff), 0)} m

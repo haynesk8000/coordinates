@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { LogOut, Trophy } from 'lucide-react';
 import { logout, syncProgress, type User } from './auth/authStore';
-import { AdministratorDashboard, InstructorAssignment, InstructorDashboard } from './components/AccountDashboards';
+import { InstructorAssignment } from './components/AccountDashboards';
 import { AuthScreen } from './components/AuthScreen';
 import { CircularMotionModule } from './components/CircularMotionModule';
 import { CoordinateSystemsModule } from './components/CoordinateSystemsModule';
@@ -23,7 +23,6 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [topic, setTopic] = useState<PhysicsTopic>('coordinate-systems');
   const [showProgress, setShowProgress] = useState(false);
-  const [accountView, setAccountView] = useState<'learning' | 'instructor' | 'administrator'>('learning');
 
   useEffect(() => {
     if (!user) return;
@@ -54,11 +53,6 @@ function App() {
         <div className="account-menu"><strong>{user.firstName} {user.lastName}</strong><span className="role-badge">{user.role}</span><button type="button" onClick={() => { logout(); setUser(null); }}><LogOut aria-hidden="true" size={17} /> Log out</button></div>
       </header>
 
-      <nav className="account-tabs" aria-label="Application sections"><button className={accountView === 'learning' ? 'active' : ''} onClick={() => setAccountView('learning')}>Learning</button>{user.role !== 'student' && <button className={accountView === 'instructor' ? 'active' : ''} onClick={() => setAccountView('instructor')}>Instructor</button>}{user.role === 'administrator' && <button className={accountView === 'administrator' ? 'active' : ''} onClick={() => setAccountView('administrator')}>Administrator</button>}</nav>
-
-      {accountView === 'instructor' && <InstructorDashboard user={user} />}
-      {accountView === 'administrator' && <AdministratorDashboard current={user} />}
-      {accountView === 'learning' && <>
       <button type="button" className="progress-toggle" aria-expanded={showProgress} onClick={() => setShowProgress((current) => !current)}><Trophy aria-hidden="true" size={18} /> {showProgress ? 'Hide my progress' : 'My progress'}</button>
 
       {showProgress && <ProgressDashboard />}
@@ -80,7 +74,6 @@ function App() {
           </section>
         ))}
       </main>
-      </>}
     </div>
   );
 }
