@@ -1,3 +1,5 @@
+// Retain legacy role values for compatibility with existing stored accounts.
+// All accounts have the effective student role when read by the application.
 export type UserRole = 'student' | 'instructor' | 'administrator';
 
 export type User = {
@@ -20,14 +22,15 @@ const SESSION_KEY = 'physics-motion-lab-session-v1';
 const PROGRESS_PREFIXES = ['coordinate-', 'physics-motion-lab-'];
 
 const readUsers = (): User[] => {
-  try { return JSON.parse(localStorage.getItem(USERS_KEY) ?? '[]') as User[]; }
+  try {
+    const users = JSON.parse(localStorage.getItem(USERS_KEY) ?? '[]') as User[];
+    return users.map((user) => ({ ...user, role: 'student' }));
+  }
   catch { return []; }
 };
 
 const writeUsers = (users: User[]) => localStorage.setItem(USERS_KEY, JSON.stringify(users));
 export const listUsers = () => readUsers();
-export const sortPeople = <T extends Pick<User, 'lastName' | 'firstName'>>(people: T[]) =>
-  [...people].sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName));
 
 // crypto.randomUUID() is unavailable in some browsers when the app is served
 // outside a secure context. Generate an RFC 4122 version-4 UUID locally so
@@ -134,7 +137,7 @@ export async function register(firstName: string, lastName: string, email: strin
   validatePin(pin);
   const user: User = {
     id: generateUuid(), firstName: firstName.trim(), lastName: lastName.trim(), email: normalizedEmail,
-    pinHash: await digest(pin), role: users.length === 0 ? 'administrator' : 'student', verified: false,
+    pinHash: await digest(pin), role: 'student', verified: false,
     verificationToken: generateUuid(), progress: {}, createdAt: new Date().toISOString(),
   };
   writeUsers([...users, user]);
@@ -181,39 +184,6 @@ export async function resetPin(token: string, pin: string) {
   delete user.pinResetToken;
   writeUsers(users);
   return user;
-}
-
-export function updateInstructor(instructorId: string) {
-  const actor = currentUser();
-  const users = readUsers();
-  const user = users.find((item) => item.id === actor?.id);
-  const instructor = users.find((item) => item.id === instructorId && item.verified && item.role !== 'student');
-  if (!user || user.role !== 'student' || !instructor) throw new Error('Invalid instructor selection.');
-  user.instructorId = instructor.id; writeUsers(users); return user;
-}
-
-export function changeRole(userId: string, role: UserRole) {
-  const actor = currentUser();
-  if (actor?.role !== 'administrator') throw new Error('Administrator permission required.');
-  if (actor.id === userId && role !== 'administrator') throw new Error('You cannot demote yourself.');
-  const users = readUsers(); const target = users.find((user) => user.id === userId);
-  if (!target) throw new Error('User not found.');
-  if (target.role === 'administrator' && role !== 'administrator' && users.filter((u) => u.role === 'administrator').length === 1) throw new Error('At least one administrator is required.');
-  target.role = role; if (role !== 'student') delete target.instructorId; writeUsers(users);
-}
-
-export function deleteUser(userId: string) {
-  const actor = currentUser(); const users = readUsers();
-  if (actor?.role !== 'administrator') throw new Error('Administrator permission required.');
-  if (actor.id === userId) throw new Error('You cannot delete yourself.');
-  const target = users.find((user) => user.id === userId);
-  if (target?.role === 'administrator' && users.filter((u) => u.role === 'administrator').length === 1) throw new Error('At least one administrator is required.');
-  writeUsers(users.filter((user) => user.id !== userId).map((user) => user.instructorId === userId ? { ...user, instructorId: undefined } : user));
-}
-
-export function resetStudents() {
-  if (currentUser()?.role !== 'administrator') throw new Error('Administrator permission required.');
-  writeUsers(readUsers().filter((user) => user.role !== 'student'));
 }
 
 export function syncProgress() {

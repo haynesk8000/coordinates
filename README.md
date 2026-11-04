@@ -26,7 +26,9 @@ npm run build
 
 ## Authentication development mode
 
-The application now opens at a required registration/login screen. The first verified account is assigned the Administrator role; later accounts begin as Students and must select a verified Instructor or Administrator before opening activities.
+The application opens at a required registration/login screen. All accounts receive the student experience and can access activities without selecting an instructor. Legacy role and instructor fields are accepted for compatibility; accounts, credentials, and progress are preserved.
+
+The welcome screen randomly selects an image from `Welcome_images` when it opens. Educational links are configured by exact image filename in `src/data/welcomeResources.ts` and rendered by `WelcomeResourceButtons`; new artwork without a resource mapping still displays without links. Resources open in a new tab and preserve the selected image.
 
 This repository remains a static Vite application. For local development, accounts and synchronized progress are represented by the browser-backed service in `src/auth/authStore.ts`, and registration displays an email preview containing the PIN and verification action. PINs are stored as SHA-256 digests rather than plain text.
 

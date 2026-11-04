@@ -18,7 +18,7 @@ The main agent must keep tab agents (domain behavior) and architectural agents (
 
 - **CURRENT:** Vite 7, React 19, TypeScript, KaTeX, Lucide React, SVG, Vitest/Testing Library, and Playwright. `src/main.tsx` mounts `App.tsx`; all styling is in `src/styles/globals.css`.
 - **CURRENT:** This is a static frontend. There are no HTTP API calls, server code, database client, environment-backed secrets, or production email service.
-- **CURRENT:** `src/App.tsx` gates the UI on `AuthScreen` and student instructor assignment, then renders learning directly with a browser-local progress dashboard and the five-topic `TopicSwitcher`. Instructor and administrator dashboard tabs are not exposed.
+- **CURRENT:** `src/App.tsx` gates the UI on `AuthScreen`, then renders learning directly with a browser-local progress dashboard and the five-topic `TopicSwitcher`. All authenticated users receive the student experience without instructor selection, role labels, or role-specific navigation.
 
 ### Five top-level learning tabs
 
@@ -36,9 +36,9 @@ Every topic currently offers Explore, Explain, and Quiz. Each also exposes a Fun
 
 - **CURRENT:** Topic/module inputs use local React `useState`. The coordinate engine projects world position, velocity, and acceleration onto orthogonal axes, then the formatter produces displayed equations. Scene interactions update the system passed from `CoordinateSystemsModule`.
 - **CURRENT:** `src/physics` holds pure computational models. `src/components/LearningModuleShared.tsx` supplies module shells, common quizzes, controls, metrics, and explanation layout. `src/components/funzone/FunZoneShared.tsx` centralizes game score/difficulty behavior.
-- **CURRENT:** Quiz scores, walkthrough completion, Fun Zone statistics, accounts, sessions, instructor assignment, and a snapshot of progress are stored in browser `localStorage`/`sessionStorage` under versioned keys. `authStore.syncProgress()` copies matching local records into the currently stored user; it is not multi-device synchronization.
-- **CURRENT:** `src/auth/authStore.ts` performs a client-side SHA-256 PIN digest, local verification/reset token simulation, roles, instructor selection, and administrator mutations. The first verified account becomes administrator; later accounts begin as students. This is a development-only frontend prototype and cannot provide trustworthy authorization, secure credential handling, or real email delivery.
-- **CURRENT:** Instructor and administrator dashboard components remain in the repository but are not rendered by the app. Scores are immediate client-side feedback only.
+- **CURRENT:** Quiz scores, walkthrough completion, Fun Zone statistics, accounts, sessions, and a snapshot of progress are stored in browser `localStorage`/`sessionStorage` under versioned keys. Legacy instructor fields remain stored for compatibility and are ignored. `authStore.syncProgress()` copies matching local records into the currently stored user; it is not multi-device synchronization.
+- **CURRENT:** `src/auth/authStore.ts` performs a client-side SHA-256 PIN digest and local verification/reset token simulation. New accounts are students, and legacy roles are normalized to student when read without deleting account data. This is a development-only frontend prototype and cannot provide trustworthy authorization, secure credential handling, or real email delivery.
+- **CURRENT:** Instructor assignment and role-management dashboards and mutations have been removed. Scores are immediate client-side feedback only.
 
 ### Testing and accessibility
 

@@ -11,7 +11,7 @@ Own identity, credentials, sessions, roles, and access-control design.
 
 ## Files and components
 
-**CURRENT:** `src/auth/authStore.ts`, `src/components/AuthScreen.tsx`, `src/components/AccountDashboards.tsx`, and role branches in `src/App.tsx`. The current SHA-256 client PIN hashing, local verification preview, local tokens, and local roles are development-only.
+**CURRENT:** `src/auth/authStore.ts`, `src/components/AuthScreen.tsx`, and the authentication gate in `src/App.tsx`. All accounts receive the student experience; legacy roles normalize to student on read and legacy instructor fields are ignored. Instructor selection and role-management dashboards/mutations are removed. The current SHA-256 client PIN hashing, local verification preview, and local tokens are development-only.
 
 ## Boundaries
 

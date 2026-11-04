@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { LogOut, Trophy } from 'lucide-react';
 import { logout, syncProgress, type User } from './auth/authStore';
-import { InstructorAssignment } from './components/AccountDashboards';
 import { AuthScreen } from './components/AuthScreen';
 import { CircularMotionModule } from './components/CircularMotionModule';
 import { CoordinateSystemsModule } from './components/CoordinateSystemsModule';
@@ -33,7 +32,6 @@ function App() {
   }, [user]);
 
   if (!user) return <AuthScreen onAuthenticated={setUser} />;
-  if (user.role === 'student' && !user.instructorId) return <InstructorAssignment user={user} onAssigned={setUser} />;
 
   const renderModule = (topicId: PhysicsTopic) => {
     if (topicId === 'coordinate-systems') return <CoordinateSystemsModule />;
@@ -50,7 +48,7 @@ function App() {
           <p className="eyebrow">Interactive Physics</p>
           <h1>Physics Motion Lab</h1>
         </div>
-        <div className="account-menu"><strong>{user.firstName} {user.lastName}</strong><span className="role-badge">{user.role}</span><button type="button" onClick={() => { logout(); setUser(null); }}><LogOut aria-hidden="true" size={17} /> Log out</button></div>
+        <div className="account-menu"><strong>{user.firstName} {user.lastName}</strong><button type="button" onClick={() => { logout(); setUser(null); }}><LogOut aria-hidden="true" size={17} /> Log out</button></div>
       </header>
 
       <button type="button" className="progress-toggle" aria-expanded={showProgress} onClick={() => setShowProgress((current) => !current)}><Trophy aria-hidden="true" size={18} /> {showProgress ? 'Hide my progress' : 'My progress'}</button>

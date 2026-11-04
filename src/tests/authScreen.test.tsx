@@ -37,7 +37,7 @@ describe('welcome and session login flow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Login' }));
 
-    expect(onAuthenticated).toHaveBeenCalledWith(expect.objectContaining({ id: user.id, role: 'administrator' }));
+    expect(onAuthenticated).toHaveBeenCalledWith(expect.objectContaining({ id: user.id, role: 'student' }));
     expect(screen.queryByLabelText('Email address')).not.toBeInTheDocument();
   });
 });
