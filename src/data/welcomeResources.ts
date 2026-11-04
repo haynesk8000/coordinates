@@ -113,4 +113,12 @@ export const welcomeScreenResources: readonly WelcomeScreenResource[] = [
       { type: 'video', url: 'https://www.youtube.com/watch?v=W7t7u-epT3g' },
     ],
   },
+  {
+    image: 'nancy_grace_roman.png',
+    subject: 'Nancy Grace Roman',
+    resources: [
+      { type: 'website', url: 'https://science.nasa.gov/people/nancy-grace-roman-for-hubble/' },
+      { type: 'video', url: 'https://www.youtube.com/watch?v=m5fC3FIUngk' },
+    ],
+  },
 ];

@@ -189,6 +189,16 @@ https://www.nobelprize.org/prizes/chemistry/1908/rutherford/biographical
 
 https://www.youtube.com/watch?v=W7t7u-epT3g
 
+### 3.14 nancy_grace_roman.png — Nancy Grace Roman
+
+**Website — Learn More**
+
+https://science.nasa.gov/people/nancy-grace-roman-for-hubble/
+
+**Video — Watch Video**
+
+https://www.youtube.com/watch?v=m5fC3FIUngk
+
 ## 4. Implementation Requirements
 
 ### 4.1 Centralized Resource Configuration
@@ -273,7 +283,7 @@ Specifically preserve:
 
 Verify the following:
 
-- [ ] All 13 specified images are supported by the resource configuration.
+- [ ] All 14 specified images are supported by the resource configuration.
 - [ ] Each image displays its correct educational resources.
 - [ ] Standard website resources display Learn More.
 - [ ] Video resources display Watch Video.
@@ -291,7 +301,7 @@ Verify the following:
 
 The implementation is complete when:
 
-1. All 13 welcome screen images have their specified educational resource mappings.
+1. All 14 welcome screen images have their specified educational resource mappings.
 2. Each displayed image presents the correct Learn More and/or Watch Video buttons.
 3. Every button navigates to its associated URL in a new tab.
 4. Buttons automatically change with the image rotation.

@@ -18,14 +18,15 @@ const expectedResources = [
   ['Oppenheimer.png', 'https://ahf.nuclearmuseum.org/ahf/profile/j-robert-oppenheimer/', 'https://www.youtube.com/watch?v=SL-btRhoJyM'],
   ['AlbertEinstein.png', 'https://www.nobelprize.org/prizes/physics/1921/einstein/biographical/', 'https://ed.ted.com/lessons/the-physics-behind-einsteins-most-famous-equation-lindsay-demarchi-and-fabio-pacucci'],
   ['Rutherford.png', 'https://www.nobelprize.org/prizes/chemistry/1908/rutherford/biographical', 'https://www.youtube.com/watch?v=W7t7u-epT3g'],
+  ['nancy_grace_roman.png', 'https://science.nasa.gov/people/nancy-grace-roman-for-hubble/', 'https://www.youtube.com/watch?v=m5fC3FIUngk'],
 ] as const;
 
 afterEach(() => vi.restoreAllMocks());
 
 describe('welcome educational resources', () => {
-  it('includes all 13 exact filenames and explicitly classified URLs from welcome.md', () => {
-    expect(welcomeScreenResources).toHaveLength(13);
-    expect(new Set(welcomeScreenResources.map(({ image }) => image)).size).toBe(13);
+  it('includes all 14 exact filenames and explicitly classified URLs from welcome.md', () => {
+    expect(welcomeScreenResources).toHaveLength(14);
+    expect(new Set(welcomeScreenResources.map(({ image }) => image)).size).toBe(14);
     for (const [image, website, video] of expectedResources) {
       const configuration = welcomeScreenResources.find((entry) => entry.image === image);
       expect(configuration?.subject).toBeTruthy();

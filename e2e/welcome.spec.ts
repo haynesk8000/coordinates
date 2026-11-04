@@ -2,6 +2,33 @@ import { expect, test } from '@playwright/test';
 import { welcomeScreenResources } from '../src/data/welcomeResources';
 
 for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+  test(`Nancy Grace Roman appears in the welcome rotation with working resource links at ${viewport.width}px`, async ({ page, context }) => {
+    await page.setViewportSize(viewport);
+    // Nancy's filename is the final entry in Vite's alphabetically ordered image glob.
+    await page.addInitScript(() => { Math.random = () => 0.999999; });
+    await context.route('https://**/*', (route) => route.fulfill({ contentType: 'text/html', body: '<title>Educational resource</title>' }));
+    await page.goto('/');
+    const image = page.getByRole('img');
+    await expect(image).toBeVisible();
+    await expect(image).toHaveAttribute('src', /\/Welcome_images\/nancy_grace_roman\.png/);
+    await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+    for (const [label, url] of [
+      ['Learn More', 'https://science.nasa.gov/people/nancy-grace-roman-for-hubble/'],
+      ['Watch Video', 'https://www.youtube.com/watch?v=m5fC3FIUngk'],
+    ]) {
+      const link = page.getByRole('link', { name: new RegExp(`${label}: Nancy Grace Roman`) });
+      await expect(link).toBeVisible();
+      await expect(link).toHaveAttribute('href', url);
+      const popupPromise = page.waitForEvent('popup');
+      await link.click();
+      const popup = await popupPromise;
+      await expect(popup).toHaveURL(url);
+      await popup.close();
+      await expect(image).toBeVisible();
+      await expect(image).toHaveAttribute('src', /\/Welcome_images\/nancy_grace_roman\.png/);
+    }
+  });
+
   test(`welcome resources remain accessible at ${viewport.width}px`, async ({ page, context }) => {
     await page.setViewportSize(viewport);
     await page.addInitScript(() => { Math.random = () => 0; });
