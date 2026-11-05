@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, RotateCcw, XCircle } from 'lucide-react';
-import { buildQuestionBank, shuffleQuestionChoices } from '../quiz/questionBank';
+import { buildQuestionBank } from '../quiz/questionBank';
+import { prepareQuizQuestions } from '../quiz/choiceOrder';
 import { emptyScore, updateScore, type QuizScore } from '../quiz/scoring';
 import type { QuizQuestion } from '../quiz/questionTypes';
 import type { ProjectileParameters } from '../physics/projectile';
@@ -141,26 +142,15 @@ function ShortQuestion({
 export function QuizMode({ params, onReviewExplain, onTryWalkthrough }: Props) {
   const questionPool = useMemo(() => buildQuestionBank(params), [params]);
   const [score, setScore] = useState<QuizScore>(() => loadScore());
-  const scoreRef = useRef(score);
-  const [quizVersion, setQuizVersion] = useState(0);
-  const previousQuizSignature = useRef('');
-  const questions = useMemo(() => {
-    const selected = selectQuizQuestions(questionPool, 10, scoreRef.current, previousQuizSignature.current);
-    previousQuizSignature.current = selected.map((selectedQuestion) => selectedQuestion.id).join('|');
-    return selected.map((selectedQuestion) => shuffleQuestionChoices(selectedQuestion));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [questionPool, quizVersion]);
+  const [questions, setQuestions] = useState(() =>
+    prepareQuizQuestions(selectQuizQuestions(questionPool, 10, score)),
+  );
+  const [attemptVersion, setAttemptVersion] = useState(0);
   const [index, setIndex] = useState(0);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const question = questions[index];
 
   useEffect(() => {
-    setIndex(0);
-    setFeedback(null);
-  }, [questions]);
-
-  useEffect(() => {
-    scoreRef.current = score;
     localStorage.setItem(storageKey, JSON.stringify(score));
   }, [score]);
 
@@ -170,6 +160,7 @@ export function QuizMode({ params, onReviewExplain, onTryWalkthrough }: Props) {
   };
 
   const answerQuestion = (answer: string | string[]) => {
+    if (feedback) return;
     if (question.type === 'components') {
       const correct = question.answer.every((part, partIndex) => normalize(answer[partIndex] ?? '') === normalize(part));
       submit(correct, correct ? question.explanation : `${question.explanation} Correct answer: ${question.answer.join(', ')}.`);
@@ -197,7 +188,10 @@ export function QuizMode({ params, onReviewExplain, onTryWalkthrough }: Props) {
   const next = () => {
     setFeedback(null);
     if (index === questions.length - 1) {
-      setQuizVersion((current) => current + 1);
+      const previousSignature = questions.map((item) => item.id).join('|');
+      setQuestions(prepareQuizQuestions(selectQuizQuestions(questionPool, 10, score, previousSignature)));
+      setAttemptVersion((current) => current + 1);
+      setIndex(0);
       return;
     }
     setIndex((current) => current + 1);
@@ -218,9 +212,9 @@ export function QuizMode({ params, onReviewExplain, onTryWalkthrough }: Props) {
         <h2 id="quiz-heading">{question.prompt}</h2>
         <QuizIllustration moduleId="coordinate-systems" prompt={question.prompt} />
         {question.type === 'components' ? (
-          <ComponentQuestion question={question} disabled={Boolean(feedback)} onAnswer={answerQuestion} />
+          <ComponentQuestion key={`${attemptVersion}-${question.id}`} question={question} disabled={Boolean(feedback)} onAnswer={answerQuestion} />
         ) : question.type === 'short' ? (
-          <ShortQuestion question={question} disabled={Boolean(feedback)} onAnswer={answerQuestion} />
+          <ShortQuestion key={`${attemptVersion}-${question.id}`} question={question} disabled={Boolean(feedback)} onAnswer={answerQuestion} />
         ) : (
           <ChoiceQuestion question={question} disabled={Boolean(feedback)} onAnswer={answerQuestion} />
         )}

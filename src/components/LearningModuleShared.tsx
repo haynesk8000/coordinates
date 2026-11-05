@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { CheckCircle2, Compass, FlaskConical, Gamepad2, GraduationCap, RotateCcw, XCircle } from 'lucide-react';
 import { ModeSwitcher, type Mode } from './ModeSwitcher';
 import { QuizIllustration } from './QuizIllustration';
+import { prepareQuizQuestions } from '../quiz/choiceOrder';
 
 export type CoreMode = Exclude<Mode, 'fun'>;
 
@@ -112,6 +113,7 @@ export function ConceptQuiz({
   onReviewExplain: () => void;
 }) {
   const storageKey = `physics-motion-lab-${moduleId}-score`;
+  const [attemptQuestions, setAttemptQuestions] = useState(() => prepareQuizQuestions(questions));
   const [index, setIndex] = useState(0);
   const [feedback, setFeedback] = useState<{ correct: boolean; explanation: string } | null>(null);
   const [score, setScore] = useState<SavedQuizScore>(() => {
@@ -122,7 +124,7 @@ export function ConceptQuiz({
       return emptyQuizScore();
     }
   });
-  const question = questions[index];
+  const question = attemptQuestions[index];
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(score));
@@ -147,7 +149,12 @@ export function ConceptQuiz({
 
   const next = () => {
     setFeedback(null);
-    setIndex((current) => (current + 1) % questions.length);
+    if (index === attemptQuestions.length - 1) {
+      setAttemptQuestions(prepareQuizQuestions(questions));
+      setIndex(0);
+    } else {
+      setIndex((current) => current + 1);
+    }
   };
 
   const reset = () => {
@@ -159,7 +166,7 @@ export function ConceptQuiz({
   return (
     <div className="quiz-layout topic-quiz">
       <section className="panel quiz-card" aria-labelledby={`${moduleId}-quiz-heading`}>
-        <p className="eyebrow">Question {index + 1} of {questions.length} • {question.skill}</p>
+        <p className="eyebrow">Question {index + 1} of {attemptQuestions.length} • {question.skill}</p>
         <h2 id={`${moduleId}-quiz-heading`}>{question.prompt}</h2>
         <QuizIllustration moduleId={moduleId} prompt={question.prompt} />
         <div className="choice-grid">
@@ -172,7 +179,7 @@ export function ConceptQuiz({
               <strong>{feedback.correct ? 'Correct' : 'Not quite'}</strong>
               <p>{feedback.explanation}</p>
               <button type="button" onClick={onReviewExplain}>Review explanation</button>
-              <button type="button" onClick={next}>Next question</button>
+              <button type="button" onClick={next}>{index === attemptQuestions.length - 1 ? 'Start new quiz' : 'Next question'}</button>
             </div>
           </div>
         )}

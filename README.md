@@ -38,7 +38,7 @@ Before a public or multi-device deployment, replace that service with authentica
 
 - `src/physics`: tested models for coordinate projection, projectiles, linear motion, relative velocity, and circular motion.
 - `src/components`: shared learning-module UI plus topic-specific Explore, Explain, Quiz, Fun Zone, SVG scenes, and controls.
-- `src/quiz`: question types, question bank, browser-local scoring.
+- `src/quiz`: question types, question bank, randomized quiz attempts, browser-local scoring. Each new attempt shuffles questions and answer options, balancing correct answers across the four multiple-choice positions (counts differ by at most one). The order stays fixed throughout an attempt; Coordinate Systems component builders and written answers retain their existing formats.
 - `src/tests`: unit tests for the coordinate transformation engine.
 - `e2e`: Playwright checks for important UI interactions.
 

@@ -52,8 +52,9 @@ describe('interactive physics topic modules', () => {
     expect(activePanel().getByRole('button', { name: /Start walkthrough/ })).toBeVisible();
 
     fireEvent.click(activePanel().getByRole('tab', { name: 'Quiz' }));
-    fireEvent.click(activePanel().getByRole('button', { name: 'Speed is increasing' }));
-    expect(activePanel().getByRole('status')).toHaveTextContent('Correct');
+    const quiz = document.querySelector('.quiz-card')!;
+    fireEvent.click(within(quiz as HTMLElement).getAllByRole('button')[0]);
+    expect(activePanel().getByRole('status')).toBeVisible();
   });
 
   it('exposes reference-frame and circular-motion controls', () => {

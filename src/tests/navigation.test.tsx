@@ -31,14 +31,16 @@ describe('application navigation', () => {
     expect(activeTopicPanel().getByLabelText('Launch speed')).toBeVisible();
 
     fireEvent.click(learningModes.getByRole('tab', { name: 'Quiz' }));
-    expect(activeTopicPanel().getByText(/At the highest point/)).toBeVisible();
+    expect(activeTopicPanel().getByText(/Question 1 of 5/)).toBeVisible();
+
+    const firstQuestion = document.querySelector('.topic-quiz .quiz-card h2')!.textContent;
 
     fireEvent.click(topLevelTabs().getByRole('tab', { name: 'Relative Motion' }));
     expect(activeTopicPanel().getByRole('heading', { name: 'Relative Motion Navigator' })).toBeVisible();
     expect(activeTopicPanel().getByLabelText('Current speed')).toBeVisible();
 
     fireEvent.click(topLevelTabs().getByRole('tab', { name: 'Projectile Motion' }));
-    expect(activeTopicPanel().getByText(/At the highest point/)).toBeVisible();
+    expect(activeTopicPanel().getByRole('heading', { name: firstQuestion! })).toBeVisible();
   });
 
   it('shows the Coordinate Systems quiz content when its Quiz tab is selected', () => {

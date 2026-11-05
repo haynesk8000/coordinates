@@ -29,7 +29,7 @@ describe('student-only learning access', () => {
       const panel = within(screen.getByRole('tabpanel', { name: 'Projectile Motion' }));
       const modes = within(panel.getByRole('tablist', { name: 'Learning mode' }));
       fireEvent.click(modes.getByRole('tab', { name: 'Quiz' }));
-      expect(panel.getByText(/At the highest point/)).toBeVisible();
+      expect(panel.getByText(/Question 1 of 5/)).toBeVisible();
       expect(screen.getByRole('button', { name: 'My progress' })).toBeVisible();
       fireEvent.click(header.getByRole('button', { name: 'Log out' }));
       expect(screen.getByRole('button', { name: 'Login' })).toBeVisible();
